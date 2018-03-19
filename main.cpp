@@ -8,7 +8,7 @@ using namespace std ;
 #include <fstream>
 #include <math.h>
 #include <cstdlib>
-#include "ranum.h"
+#include "ranum2.h"
 #include <fstream>
 /*
  namespace patch{
