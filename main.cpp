@@ -17,7 +17,7 @@ using namespace std ;
  }
  */
 
-#define nnode 7                                                // need to be an odd number
+#define nnode 9                                                // need to be an odd number
 #define nbacteria 18                                           // 2* n^2
 #define points nbacteria*nnode
 #define domainx  40.0
