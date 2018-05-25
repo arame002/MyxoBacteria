@@ -1,15 +1,11 @@
 
-
-
-
-
-using namespace std ;
 #include <iostream>
 #include <fstream>
 #include <math.h>
 #include <cstdlib>
 #include "ranum2.h"
 #include <fstream>
+using namespace std ;
 /*
  namespace patch{
  template <typename  T> string to_string (const T& n)
@@ -22,13 +18,18 @@ using namespace std ;
  */
 
 #define nnode 7                                                // need to be an odd number
-#define nbacteria 200
+#define nbacteria 18                                           // 2* n^2
 #define points nbacteria*nnode
+#define domainx  40.0
+#define domainy  40.0
+double initialTime = 4.0 ;
+double runTime = 1000.0 ;
+
+
 long  idum=(-799);
 
-void Myxo () ;
 void Spring() ;
-void Bending2() ;
+void Bending() ;
 void Print() ;
 double Distance (int ,int, int, int) ;                                     // bacteria, node, bacteria, node
 double Distance2 (double, double, double, double, int, int ) ;             //x1,y1,x2,y2, shiftx, shifty
@@ -48,25 +49,28 @@ void ProteinExchange () ;
 void NodeProtein () ;
 void Duplicate () ;
 void Merge () ;
-void ParaView (int , int ) ;                                    // (current time, time step)
+void ParaView ( ) ;                                    // (current time, time step)
+void ParaView2 () ;
+void Track () ;
+void Diffusion (double, double ) ;
 //-----------------------------------------------------------------------------------------------------
 double length = 5.0 ;
 double B = 1.0 ;                      // bending constant
 double tetta0=3.1415 ;               // prefered angle
 double K =  1.0 ;                      // linear spring constant (stiffness)
 double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
-double kblz=1.0 , temp=0.01 , eta=1.0 ;
-double diffusion =kblz*temp/eta ;
+double kblz=1.0 , temp=0.01 , eta1 = 1.0 , eta2 = 5.0 ;
+double diffusion ;
 double dt=0.0001 ;
 double initialStep = 0.0001 ;
 double fmotor = 0.1 ;
 double Rp = 0.3 ;
 double reversalTime = 1500.0 ;
-double domainx = 100.0 ;
-double domainy = 100.0 ;
+double sr = 0.25 ;                          // slime rate production
+double kd = 0.1 ;
 int shiftx = 0 ;
 int shifty = 0 ;
-int index1 = 0 ;                                      // needed for ParaView
+int index1 = 0 ;                            // needed for ParaView
 
 
 
@@ -101,23 +105,50 @@ class bacterium
 };
 
 bacterium bacteria[nbacteria];
+const double dx= 0.5 ;
+const double dy= 0.5 ;
+const int nx = static_cast<int>(domainx/dx) ;
+const int ny = static_cast<int> (domainy/dy) ;
+const int nz = 1 ;
+double X[nx] ;
+double Y[ny] ;
+double Z[nz]= {0.0} ;
+double slime[nx][ny] ;
+
 
 
 int main ()
 {
+    for (int m=0; m<nx; m++)
+    {
+        for (int n=0; n<ny; n++)
+        {
+            slime[m][n] = 1.0  ;
+        }
+    }
+    
+    for (int i=0; i<nx; i++)
+    {
+        X[i]= i*dx ;
+    }
+    for (int j=0; j<ny; j++)
+    {
+        Y[j]= j * dy ;
+    }
+    
+   
+//-----------------------------------------------------------------------------------------------------
     ofstream ProteinLevelFile ;
     ProteinLevelFile.open("ProteinLevelFile.txt") ;
     
-    cout<<x0<<endl ;
+ //   cout<<x0<<endl ;
     cout<<"program is running"<<endl  ;
-    double initialTime = 4.0 ;
-    double time = 1000.0 ;
-    double nt=time/dt + initialTime/initialStep ;                   //total number of steps
+    double nt=runTime/dt + initialTime/initialStep ;                   //total number of steps
     nt =static_cast<int>(nt) ;
     double initialNt =initialTime/initialStep ;                     // run time for initialization
     initialNt =static_cast<int>(initialNt) ;
     int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
-    int inverseDt =static_cast<int>((nt-initialNt)/time) ;              // used for visualization(ParaView)
+    int inverseDt =static_cast<int>((nt-initialNt)/(runTime)) ;              // used for visualization(ParaView)
     
     
     int  revnt = static_cast<int>(reversalTime/ dt) ;
@@ -135,15 +166,19 @@ int main ()
     {
         if (l < initialNt)
         {
+     
             AllNodes() ;
             Spring () ;
-            Bending2() ;
+            Bending() ;
             u_lj() ;
             RandomForce() ;
+     /*
            if (l%inverseInitialStep==0)
            {
-               ParaView(l,inverseInitialStep) ;
+               ParaView() ;
+               ParaView2() ;
            }
+      */
             PositionUpdating(initialStep) ;
         
         }
@@ -153,22 +188,29 @@ int main ()
             {
                 Reverse () ;
             }
+       
             AllNodes() ;
             Spring () ;
-            Bending2() ;
+           Bending() ;
             u_lj() ;
             RandomForce() ;
             Motor () ;
+            Track() ;
             Connection() ;
             ProteinExchange() ;
+            
+            
             if (l%inverseDt==0)
             {
+       
                 for (int i=0; i<nbacteria; i++)
                 {
                     ProteinLevelFile<<bacteria[i].protein<<"," ;
                 }
                 ProteinLevelFile<< endl<<endl ;
-                ParaView (l,inverseDt)  ;
+         
+                ParaView ()  ;
+                ParaView2() ;
                 cout<<(l-initialNt)/inverseDt<<endl ;
                 
             }
@@ -190,7 +232,7 @@ void PositionUpdating (double t)
     for (int i=0; i<nbacteria; i++)
     {
     for(int j=0 ; j<nnode; j++)
-    {
+    {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
         bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
         bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
         bacteria[i].nodes[j].x += t* (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
@@ -260,7 +302,7 @@ double Cos0ijk(int i,int m)
     return cos ;
 }
 //-----------------------------------------------------------------------------------------------------
-void Bending2()
+void Bending()
 {
     double Bend1x[nnode] ;
     double Bend2x[nnode] ;
@@ -380,13 +422,15 @@ double u_lj()
 
 void RandomForce()
 {
-    double sig= sqrt(2.0*diffusion*dt) ;
+    double sig ;
     for(int i=0; i<nbacteria ; i++)
     {
         for(int j=0 ; j<nnode; j++)
         {
-        bacteria[i].nodes[j].xdev =gasdev(&idum)*sig;
-        bacteria[i].nodes[j].ydev =gasdev(&idum)*sig;
+            Diffusion(bacteria[i].nodes[j].x, bacteria[i].nodes[j].y) ;
+            sig = sqrt(2.0*diffusion*dt) ;
+            bacteria[i].nodes[j].xdev =gasdev(&idum)*sig;
+            bacteria[i].nodes[j].ydev =gasdev(&idum)*sig;
         }
     }
 }
@@ -478,19 +522,7 @@ void Initialization ()
     }
     
 }
-//-----------------------------------------------------------------------------------------------------
-void Myxo ()
-{
-    for (int i=0; i<nbacteria; i++)
-    {
-        for(int j=0; j< nnode; j++)
-        {
-            bacteria[i].nodes[j].x = 0.8*(i*nnode+j) ;
-            bacteria[i].nodes[j].y = 0.8*(i*nnode+j) ;
-        }
-    }
-    
-}
+
 //-----------------------------------------------------------------------------------------------------
 void ljNodesPosition ()
 {
@@ -505,7 +537,8 @@ void ljNodesPosition ()
 }
 //-----------------------------------------------------------------------------------------------------
 void InitialProtein ()
-{   double allProtein = 0.0 ;
+{
+    double allProtein = 0.0 ;
     for (int i=0; i<nbacteria; i++)
     {
        bacteria[i].protein = rand() / (RAND_MAX + 1.0);
@@ -522,7 +555,6 @@ void InitialProtein ()
 //-----------------------------------------------------------------------------------------------------
 void Connection ()
 {
-  
     double xmin = sqrt((x0/4)*(x0/4)+ 0.36) ;
     double d  ;
     double min ;
@@ -616,7 +648,6 @@ void NodeProtein ()
 //-----------------------------------------------------------------------------------------------------
 void Duplicate()
 {
-
     for (int i=0; i<nbacteria; i++)
     {   bacteria[i].copy = false ;              // No duplicate is needed
         if (bacteria[i].nodes[(nnode-1)/2].x >5 && bacteria[i].nodes[(nnode-1)/2].x <(domainx-5) && bacteria[i].nodes[(nnode-1)/2].y > 5 && bacteria[i].nodes[(nnode-1)/2].y < (domainy-5) )
@@ -739,9 +770,8 @@ double MinDistance (double x1 , double y1 ,double x2 , double y2)
 
 //-----------------------------------------------------------------------------------------------------
 
-void ParaView (int l,int t)
+void ParaView ()
 {
-
         NodeProtein() ;
         Duplicate() ;
         Merge() ;
@@ -787,11 +817,96 @@ void ParaView (int l,int t)
         }
         }
         ECMOut.close();
-        index1++ ;
-   
 }
 
+    
+    //-----------------------------------------------------------------------------------------------------
 
+   void ParaView2 ()
+{
+    int index = index1 ;
+    string vtkFileName2 = "Grid"+ to_string(index)+ ".vtk" ;
+    ofstream SignalOut;
+    SignalOut.open(vtkFileName2.c_str());
+    SignalOut << "# vtk DataFile Version 2.0" << endl;
+    SignalOut << "Result for paraview 2d code" << endl;
+    SignalOut << "ASCII" << endl;
+    SignalOut << "DATASET RECTILINEAR_GRID" << endl;
+    SignalOut << "DIMENSIONS" << " " << nx  << " " << " " << ny << " " << nz  << endl;
+    
+    SignalOut << "X_COORDINATES " << nx << " float" << endl;
+    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+    for (int i = 0; i < nx ; i++) {
+        SignalOut << X[i] << endl;
+    }
+    
+    SignalOut << "Y_COORDINATES " << ny << " float" << endl;
+    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+    for (int j = 0; j < ny; j++) {
+        SignalOut << Y[j] << endl;
+    }
+    
+    SignalOut << "Z_COORDINATES " << nz << " float" << endl;
+    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+    for (int k = 0; k < nz ; k++) {
+        SignalOut << 0 << endl;
+    }
+    
+    SignalOut << "POINT_DATA " << (nx )*(ny )*(nz ) << endl;
+    SignalOut << "SCALARS DPP float 1" << endl;
+    SignalOut << "LOOKUP_TABLE default" << endl;
+    
+    for (int k = 0; k < nz ; k++) {
+        for (int j = 0; j < ny; j++) {
+            for (int i = 0; i < nx; i++) {
+                SignalOut << slime[i][j] << endl;
+                
+            }
+        }
+    }
+    index1++ ;
+}
+   
+//-----------------------------------------------------------------------------------------------------
+void Track ()
+{
+    int m = 0 ;
+    int n = 0 ;
 
+    for (m=0; m<nx; m++)
+    {
+        for (n=0; n<ny; n++)
+        {
+            slime[m][n] -= kd * dt * (slime[m][n]-1)  ;
+        }
+    }
+    for (int i=0; i<nbacteria; i++)
+    {
+        for (int j=0; j<2*nnode-1 ; j++)
+        {
+           // we add domain to x and y in order to make sure m and n would not be negative integers
+            m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
+            n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
+            slime [m][n] += sr* dt ;
+        }
+    }
+}
+//-----------------------------------------------------------------------------------------------------
+void Diffusion (double x , double y)
+{
+    int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
+    int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
+  /*
+    if (slime[m][n] == 0.0  )
+    {
+        diffusion = kblz * temp / eta2 ;
+    }
+    else
+    {
+        diffusion = kblz * temp / eta1 ;
+    }
+   */
+    diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+}
 
 
