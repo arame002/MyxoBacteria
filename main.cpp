@@ -17,13 +17,13 @@ using namespace std ;
  }
  */
 
-#define nnode 9                                                // need to be an odd number
+#define nnode 7                                                // need to be an odd number
 #define nbacteria 18                                           // 2* n^2
 #define points nbacteria*nnode
 #define domainx  40.0
 #define domainy  40.0
 double initialTime = 4.0 ;
-double runTime = 1000.0 ;
+double runTime = 200.0 ;
 
 
 long  idum=(-799);
@@ -38,7 +38,7 @@ double Cos0ijk(int, int) ;
 double u_lj () ;
 void RandomForce() ;
 void Motor () ;
-void Reverse () ;                                               // inverse head and tail
+void Reverse (int) ;                                               // inverse head and tail
 void Initialization () ;
 void PositionUpdating (double ) ;                               // (time step)
 void ljNodesPosition () ;
@@ -53,6 +53,8 @@ void ParaView ( ) ;                                    // (current time, time st
 void ParaView2 () ;
 void Track () ;
 void Diffusion (double, double ) ;
+void InitialReversalTime () ;
+void ReversalTime() ;
 //-----------------------------------------------------------------------------------------------------
 double length = 5.0 ;
 double B = 1.0 ;                      // bending constant
@@ -65,7 +67,7 @@ double dt=0.0001 ;
 double initialStep = 0.0001 ;
 double fmotor = 0.1 ;
 double Rp = 0.3 ;
-double reversalTime = 1500.0 ;
+double reversalPeriod = 50.0 ;
 double sr = 0.25 ;                          // slime rate production
 double kd = 0.1 ;
 int shiftx = 0 ;
@@ -101,7 +103,7 @@ class bacterium
     double protein ;
     node duplicate[nnode] ;
     bool copy ;
-    
+    double reversalTime ;
 };
 
 bacterium bacteria[nbacteria];
@@ -136,62 +138,59 @@ int main ()
         Y[j]= j * dy ;
     }
     
-   
-//-----------------------------------------------------------------------------------------------------
+    
+    //-----------------------------------------------------------------------------------------------------
     ofstream ProteinLevelFile ;
     ProteinLevelFile.open("ProteinLevelFile.txt") ;
     
- //   cout<<x0<<endl ;
+    //   cout<<x0<<endl ;
     cout<<"program is running"<<endl  ;
     double nt=runTime/dt + initialTime/initialStep ;                   //total number of steps
     nt =static_cast<int>(nt) ;
     double initialNt =initialTime/initialStep ;                     // run time for initialization
     initialNt =static_cast<int>(initialNt) ;
-    int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
+    //    int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
     int inverseDt =static_cast<int>((nt-initialNt)/(runTime)) ;              // used for visualization(ParaView)
     
     
-    int  revnt = static_cast<int>(reversalTime/ dt) ;
+    //  int  revnt = static_cast<int>(reversalPeriod/ dt) ;   // used to call the old version of Reverse , Reversing all bacteria at the same time
     Initialization() ;
     ljNodesPosition() ;
     InitialProtein() ;
+    InitialReversalTime() ;
     for (int i=0; i<nbacteria; i++)
     {
         bacteria[i].connection[i]=0.0 ;
     }
     
-
-
- for (int l=0; l< (nt+1); l++)
+    
+    
+    for (int l=0; l< (nt+1); l++)
     {
         if (l < initialNt)
         {
-     
+            
             AllNodes() ;
             Spring () ;
             Bending() ;
             u_lj() ;
             RandomForce() ;
-     /*
-           if (l%inverseInitialStep==0)
-           {
-               ParaView() ;
-               ParaView2() ;
-           }
-      */
+            /*
+             if (l%inverseInitialStep==0)
+             {
+             ParaView() ;
+             ParaView2() ;
+             }
+             */
             PositionUpdating(initialStep) ;
-        
+            
         }
         else
         {
-            if ( (l % revnt ==0) & (l / revnt != 0))
-            {
-                Reverse () ;
-            }
-       
+            ReversalTime() ;
             AllNodes() ;
             Spring () ;
-           Bending() ;
+            Bending() ;
             u_lj() ;
             RandomForce() ;
             Motor () ;
@@ -202,13 +201,13 @@ int main ()
             
             if (l%inverseDt==0)
             {
-       
+                
                 for (int i=0; i<nbacteria; i++)
                 {
                     ProteinLevelFile<<bacteria[i].protein<<"," ;
                 }
                 ProteinLevelFile<< endl<<endl ;
-         
+                
                 ParaView ()  ;
                 ParaView2() ;
                 cout<<(l-initialNt)/inverseDt<<endl ;
@@ -218,7 +217,7 @@ int main ()
         }
         
     }
-
+    
     cout<<"No Bug"<<endl ;
     return 0 ;
 }
@@ -231,18 +230,18 @@ void PositionUpdating (double t)
 {
     for (int i=0; i<nbacteria; i++)
     {
-    for(int j=0 ; j<nnode; j++)
-    {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
-        bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
-        bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
-        bacteria[i].nodes[j].x += t* (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
-        
-        bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fSpringy + bacteria[i].nodes[j].fBendingy ) * diffusion / (kblz * temp) ;
-        bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
-        
-        bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fljy + bacteria[i].nodes[j].fMotory) * diffusion /(kblz*temp);
-        
-    }
+        for(int j=0 ; j<nnode; j++)
+        {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
+            bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
+            bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+            bacteria[i].nodes[j].x += t* (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
+            
+            bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fSpringy + bacteria[i].nodes[j].fBendingy ) * diffusion / (kblz * temp) ;
+            bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+            
+            bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fljy + bacteria[i].nodes[j].fMotory) * diffusion /(kblz*temp);
+            
+        }
     }
     ljNodesPosition() ;
 }
@@ -258,20 +257,20 @@ void Spring()
             if (j==0 )
             {
                 bacteria[i].nodes[j].fSpringx= -K * (Distance (i,j,i,j+1 ) - x0) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) / Distance (i,j,i,j+1) ;
-            
-               bacteria[i].nodes[j].fSpringy= -K * (Distance (i,j,i,j+1 ) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) / Distance (i,j,i,j+1) ;
+                
+                bacteria[i].nodes[j].fSpringy= -K * (Distance (i,j,i,j+1 ) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) / Distance (i,j,i,j+1) ;
             }
             
             else if (j== (nnode-1))
             {
                 bacteria[i].nodes[j].fSpringx = -K * (Distance (i,j,i,j-1) - x0) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) / Distance (i,j,i,j-1) ;
-    
-              bacteria[i].nodes[j].fSpringy = -K * (Distance (i,j,i,j-1) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) / Distance (i,j,i,j-1) ;
+                
+                bacteria[i].nodes[j].fSpringy = -K * (Distance (i,j,i,j-1) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) / Distance (i,j,i,j-1) ;
             }
             else
             {
-              bacteria[i].nodes[j].fSpringx  = -K * ( Distance(i,j,i,j-1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) /Distance(i,j,i,j-1) ;
-            bacteria[i].nodes[j].fSpringx += -K * ( Distance(i,j,i,j+1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) /Distance(i,j,i,j+1) ;
+                bacteria[i].nodes[j].fSpringx  = -K * ( Distance(i,j,i,j-1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) /Distance(i,j,i,j-1) ;
+                bacteria[i].nodes[j].fSpringx += -K * ( Distance(i,j,i,j+1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) /Distance(i,j,i,j+1) ;
                 
                 bacteria[i].nodes[j].fSpringy  = -K * ( Distance(i,j,i,j-1) - x0 ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) /Distance(i,j,i,j-1) ;
                 bacteria[i].nodes[j].fSpringy += -K * ( Distance(i,j,i,j+1) - x0 ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) /Distance(i,j,i,j+1) ;
@@ -314,12 +313,12 @@ void Bending()
     
     for (int i=0 ; i<nbacteria; i++)
     {   for(int j=0; j<nnode ; j++)
-        {
-            bacteria[i].nodes[j].fBendingx=0.0 ;
-            bacteria[i].nodes[j].fBendingy=0.0 ;
-        }
+    {
+        bacteria[i].nodes[j].fBendingx=0.0 ;
+        bacteria[i].nodes[j].fBendingy=0.0 ;
     }
-        for (int i=0; i<nbacteria; i++)
+    }
+    for (int i=0; i<nbacteria; i++)
     {
         for (int j=0; j<nnode; j++)
         {
@@ -334,24 +333,24 @@ void Bending()
         
         for (int j=0 ;j<nnode-2; j++)
         {
-        Bend1x[j] += -B *(bacteria[i].nodes[j+2].x-bacteria[i].nodes[j+1].x)/(Distance(i,j,i,j+1) * Distance(i,j+2,i,j+1)) ;
-        Bend1x[j] +=  B *(Cos0ijk(i,j+1)/(Distance(i,j,i,j+1)*Distance(i,j,i,j+1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j+1].x)) ;
+            Bend1x[j] += -B *(bacteria[i].nodes[j+2].x-bacteria[i].nodes[j+1].x)/(Distance(i,j,i,j+1) * Distance(i,j+2,i,j+1)) ;
+            Bend1x[j] +=  B *(Cos0ijk(i,j+1)/(Distance(i,j,i,j+1)*Distance(i,j,i,j+1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j+1].x)) ;
             
-        Bend1y[j] += -B *(bacteria[i].nodes[j+2].y-bacteria[i].nodes[j+1].y)/(Distance(i,j,i,j+1) * Distance(i,j+2,i,j+1)) ;
-        Bend1y[j] +=  B *(Cos0ijk(i,j+1)/(Distance(i,j,i,j+1)*Distance(i,j,i,j+1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j+1].y)) ;
+            Bend1y[j] += -B *(bacteria[i].nodes[j+2].y-bacteria[i].nodes[j+1].y)/(Distance(i,j,i,j+1) * Distance(i,j+2,i,j+1)) ;
+            Bend1y[j] +=  B *(Cos0ijk(i,j+1)/(Distance(i,j,i,j+1)*Distance(i,j,i,j+1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j+1].y)) ;
             
         }
         for (int j=2; j<nnode ; j++)
         {
-        Bend3x[j] += -B *(bacteria[i].nodes[j-2].x-bacteria[i].nodes[j-1].x)/(Distance(i,j-2,i,j-1) * Distance(i,j,i,j-1)) ;
-        Bend3x[j] +=  B *(Cos0ijk(i,j-1)/(Distance(i,j,i,j-1)*Distance(i,j,i,j-1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j-1].x)) ;
-        Bend3y[j] += -B *(bacteria[i].nodes[j-2].y-bacteria[i].nodes[j-1].y)/(Distance(i,j-2,i,j-1) * Distance(i,j,i,j-1)) ;
-        Bend3y[j] +=  B *(Cos0ijk(i,j-1)/(Distance(i,j,i,j-1)*Distance(i,j,i,j-1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j-1].y)) ;
+            Bend3x[j] += -B *(bacteria[i].nodes[j-2].x-bacteria[i].nodes[j-1].x)/(Distance(i,j-2,i,j-1) * Distance(i,j,i,j-1)) ;
+            Bend3x[j] +=  B *(Cos0ijk(i,j-1)/(Distance(i,j,i,j-1)*Distance(i,j,i,j-1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j-1].x)) ;
+            Bend3y[j] += -B *(bacteria[i].nodes[j-2].y-bacteria[i].nodes[j-1].y)/(Distance(i,j-2,i,j-1) * Distance(i,j,i,j-1)) ;
+            Bend3y[j] +=  B *(Cos0ijk(i,j-1)/(Distance(i,j,i,j-1)*Distance(i,j,i,j-1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j-1].y)) ;
         }
         for (int j=1; j<nnode-1; j++)
         {
-        Bend2x[j] += -1 * (Bend1x[j-1] + Bend3x[j+1] ) ;
-        Bend2y[j] += -1 * (Bend1y[j-1] + Bend3y[j+1] ) ;
+            Bend2x[j] += -1 * (Bend1x[j-1] + Bend3x[j+1] ) ;
+            Bend2y[j] += -1 * (Bend1y[j-1] + Bend3y[j+1] ) ;
         }
         
         for (int j=0; j<nnode; j++)
@@ -360,7 +359,7 @@ void Bending()
             bacteria[i].nodes[j].fBendingy=  Bend1y[j] + Bend2y[j] + Bend3y[j] ;
         }
     }
-
+    
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -385,35 +384,35 @@ double u_lj()
         for (int j=i+1 ; j<nbacteria ; j++)
         {  min = MinDistance(bacteria[i].nodes[(nnode-1)/2].x , bacteria[i].nodes[(nnode-1)/2].y , bacteria[j].nodes[(nnode-1)/2].x , bacteria[j].nodes[(nnode-1)/2].y)  ;
             
-        if ( min < (1.2 * length))
-        {
-            for (int m=0; m<2*nnode-1; m++)
+            if ( min < (1.2 * length))
             {
-                for (int n=0 ; n<2*nnode-1 ; n++)
+                for (int m=0; m<2*nnode-1; m++)
                 {
-                    if (m%2==1 && n%2==1) continue ;
-                    delta_x=bacteria[i].allnodes[m].x-bacteria[j].allnodes[n].x + ( shiftx * domainx) ;
-                    delta_y=bacteria[i].allnodes[m].y-bacteria[j].allnodes[n].y + ( shifty * domainy)  ;
-                    double delta2= (delta_x * delta_x) + (delta_y * delta_y) ;
-                    if (delta2<rcut2)              //ignore particles having long distance
+                    for (int n=0 ; n<2*nnode-1 ; n++)
                     {
-                        double r2i=sigma2/delta2 , r6i=r2i*r2i*r2i ;
-                        double force=48*eps*r6i*(r6i-0.5)*r2i;
-                        ulj=ulj+4*eps*r6i*(r6i-1) ;
-                        if (m%2==0)
+                        if (m%2==1 && n%2==1) continue ;
+                        delta_x=bacteria[i].allnodes[m].x-bacteria[j].allnodes[n].x + ( shiftx * domainx) ;
+                        delta_y=bacteria[i].allnodes[m].y-bacteria[j].allnodes[n].y + ( shifty * domainy)  ;
+                        double delta2= (delta_x * delta_x) + (delta_y * delta_y) ;
+                        if (delta2<rcut2)              //ignore particles having long distance
                         {
-                        bacteria[i].nodes[m/2].fljx += force*delta_x ;
-                        bacteria[i].nodes[m/2].fljy += force*delta_y;
-                        }
-                        if (n%2 == 0)
-                        {
-                        bacteria[j].nodes[n/2].fljx -= force*delta_x ;
-                        bacteria[j].nodes[n/2].fljy -= force*delta_y ;
+                            double r2i=sigma2/delta2 , r6i=r2i*r2i*r2i ;
+                            double force=48*eps*r6i*(r6i-0.5)*r2i;
+                            ulj=ulj+4*eps*r6i*(r6i-1) ;
+                            if (m%2==0)
+                            {
+                                bacteria[i].nodes[m/2].fljx += force*delta_x ;
+                                bacteria[i].nodes[m/2].fljy += force*delta_y;
+                            }
+                            if (n%2 == 0)
+                            {
+                                bacteria[j].nodes[n/2].fljx -= force*delta_x ;
+                                bacteria[j].nodes[n/2].fljy -= force*delta_y ;
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
     return ulj ;
@@ -449,37 +448,39 @@ void Motor()
     {   for(int j=0 ; j<nnode; j++)
     {
         if(j==0)
-    {   bacteria[i].nodes[j].fMotorx =  fmotor * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;
-        bacteria[i].nodes[j].fMotory =  fmotor * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y)/ Distance(i,j,i,j+1) ;
-        
-    }
+        {   bacteria[i].nodes[j].fMotorx =  fmotor * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;
+            bacteria[i].nodes[j].fMotory =  fmotor * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y)/ Distance(i,j,i,j+1) ;
+            
+        }
         else
         {
-        bacteria[i].nodes[j].fMotorx = fmotor * (bacteria[i].nodes[j-1].x - bacteria[i].nodes[j].x)/Distance(i,j-1,i,j) ;
-        bacteria[i].nodes[j].fMotory = fmotor * (bacteria[i].nodes[j-1].y - bacteria[i].nodes[j].y)/Distance(i,j-1,i,j) ;
+            bacteria[i].nodes[j].fMotorx = fmotor * (bacteria[i].nodes[j-1].x - bacteria[i].nodes[j].x)/Distance(i,j-1,i,j) ;
+            bacteria[i].nodes[j].fMotory = fmotor * (bacteria[i].nodes[j-1].y - bacteria[i].nodes[j].y)/Distance(i,j-1,i,j) ;
         }
     }
     }
 }
 //-----------------------------------------------------------------------------------------------------
-void Reverse ()
+void Reverse (int i)
 {
-    for (int i=0; i<nbacteria; i++)
+    int start = 0;
+    int end = nnode-1 ;
+    node temp  ;
+    
+    while (start < end )
     {
-        int start = 0;
-        int end = nnode-1 ;
-        node temp  ;
-        
-        while (start < end )
-        {
-            temp= bacteria[i].nodes[start] ;
-            bacteria[i].nodes[start]= bacteria[i].nodes[end] ;
-            bacteria[i].nodes[end] = temp ;
-            start += 1 ;
-            end   -= 1 ;
-        }
+        temp= bacteria[i].nodes[start] ;
+        bacteria[i].nodes[start]= bacteria[i].nodes[end] ;
+        bacteria[i].nodes[end] = temp ;
+        start += 1 ;
+        end   -= 1 ;
     }
-    ljNodesPosition() ;
+    for (int j=0; j<nnode-1; j++)                                   //updating L-J nodes positions
+    {
+        bacteria[i].ljnodes[j].x = (bacteria[i].nodes[j].x + bacteria[i].nodes[j+1].x)/2 ;
+        bacteria[i].ljnodes[j].y = (bacteria[i].nodes[j].y + bacteria[i].nodes[j+1].y)/2 ;
+    }
+    
 }
 //-----------------------------------------------------------------------------------------------------
 void Initialization ()
@@ -516,7 +517,7 @@ void Initialization ()
             row++ ;
             coloum = 0 ;
         }
-
+        
         else {coloum++ ;}
         
     }
@@ -541,16 +542,16 @@ void InitialProtein ()
     double allProtein = 0.0 ;
     for (int i=0; i<nbacteria; i++)
     {
-       bacteria[i].protein = rand() / (RAND_MAX + 1.0);
+        bacteria[i].protein = rand() / (RAND_MAX + 1.0);
         allProtein += bacteria[i].protein ;
         
     }
-    cout<<allProtein<<endl ;
+    cout<<"Total amount of Protein is "<< allProtein<<endl ;
     for (int i=0 ; i<nbacteria; i++)
     {
         bacteria[i].protein = bacteria[i].protein/allProtein ;      // normalized protein
     }
-
+    
 }
 //-----------------------------------------------------------------------------------------------------
 void Connection ()
@@ -575,7 +576,7 @@ void Connection ()
                     {   d = Distance2 ( bacteria[i].allnodes[m].x , bacteria[i].allnodes[m].y, bacteria[j].allnodes[n].x , bacteria[j].allnodes[n].y ,shiftx , shifty ) ;
                         if ( d < xmin )
                         { //  bacteria[i].connection[j] += 0.5 ;
-                          //  bacteria[j].connection[i] += 0.5 ;
+                            //  bacteria[j].connection[i] += 0.5 ;
                             if (m==0 || n==0 || m== (2*nnode-2)|| n== (2*nnode-2) )
                             {
                                 bacteria[i].connection[j] += 0.25 ;
@@ -587,15 +588,15 @@ void Connection ()
                                 bacteria[j].connection[i] += 0.5 ;
                             }
                         }
-
-                
+                        
+                        
                     }
                 }
                 
             }
-            }
         }
     }
+}
 
 //-----------------------------------------------------------------------------------------------------
 void AllNodes ()
@@ -691,9 +692,9 @@ void Duplicate()
                 {
                     bacteria[i].duplicate[j].y = bacteria[i].nodes[j].y ;
                 }
-               
+                
             }
-
+            
         }
     }
 }
@@ -724,7 +725,7 @@ void Merge ()
                     bacteria[i].nodes[j].x = bacteria[i].duplicate[j].x ;
                 }
             }
-        
+            
             j=0 ;
             ay = true ;
             while (j<nnode)
@@ -752,7 +753,7 @@ double MinDistance (double x1 , double y1 ,double x2 , double y2)
     shifty = 0 ;
     double min = Distance2(x1, y1, x2, y2 ,0 , 0) ;
     double a ;
-
+    
     for (int nx = -1 ; nx<2; nx++)
     {
         for (int ny= -1 ; ny<2; ny++)
@@ -772,57 +773,57 @@ double MinDistance (double x1 , double y1 ,double x2 , double y2)
 
 void ParaView ()
 {
-        NodeProtein() ;
-        Duplicate() ;
-        Merge() ;
-        int index = index1 ;
-        string vtkFileName = "ECM"+ to_string(index)+ ".vtk" ;
-        ofstream ECMOut;
-        ECMOut.open(vtkFileName.c_str());
-        ECMOut<< "# vtk DataFile Version 3.0" << endl;
-        ECMOut<< "Result for paraview 2d code" << endl;
-        ECMOut << "ASCII" << endl;
-        ECMOut << "DATASET UNSTRUCTURED_GRID" << endl;
-        ECMOut << "POINTS " << points << " float" << endl;
-        for (uint i = 0; i < nbacteria; i++)
+    NodeProtein() ;
+    Duplicate() ;
+    Merge() ;
+    int index = index1 ;
+    string vtkFileName = "ECM"+ to_string(index)+ ".vtk" ;
+    ofstream ECMOut;
+    ECMOut.open(vtkFileName.c_str());
+    ECMOut<< "# vtk DataFile Version 3.0" << endl;
+    ECMOut<< "Result for paraview 2d code" << endl;
+    ECMOut << "ASCII" << endl;
+    ECMOut << "DATASET UNSTRUCTURED_GRID" << endl;
+    ECMOut << "POINTS " << points << " float" << endl;
+    for (uint i = 0; i < nbacteria; i++)
+    {
+        for (uint j=0; j<nnode ; j++)
         {
-            for (uint j=0; j<nnode ; j++)
-            {
-                ECMOut << bacteria[i].duplicate[j].x << " " << bacteria[i].duplicate[j].y << " "
-                << 0.0 << endl;
-                
-            }
-        }
-        ECMOut<< endl;
-        ECMOut<< "CELLS " << points-1<< " " << 3 *(points-1)<< endl;
-        for (uint i = 0; i < (points-1); i++)
-        {
-            
-            ECMOut << 2 << " " << i << " "
-            << i+1 << endl;
+            ECMOut << bacteria[i].duplicate[j].x << " " << bacteria[i].duplicate[j].y << " "
+            << 0.0 << endl;
             
         }
+    }
+    ECMOut<< endl;
+    ECMOut<< "CELLS " << points-1<< " " << 3 *(points-1)<< endl;
+    for (uint i = 0; i < (points-1); i++)
+    {
+        
+        ECMOut << 2 << " " << i << " "
+        << i+1 << endl;
+        
+    }
     
-        ECMOut << "CELL_TYPES " << points-1<< endl;
-        for (uint i = 0; i < points-1; i++) {
-            ECMOut << "3" << endl;
-        }
-        ECMOut << "POINT_DATA "<<points <<endl ;
-        ECMOut << "SCALARS Protein_rate " << "float"<< endl;
-        ECMOut << "LOOKUP_TABLE " << "default"<< endl;
-        for (uint i = 0; i < nbacteria ; i++)
-        {   for ( uint j=0; j<nnode ; j++)
-        {
-            ECMOut<< bacteria[i].nodes[j].protein <<endl ;
-        }
-        }
-        ECMOut.close();
+    ECMOut << "CELL_TYPES " << points-1<< endl;
+    for (uint i = 0; i < points-1; i++) {
+        ECMOut << "3" << endl;
+    }
+    ECMOut << "POINT_DATA "<<points <<endl ;
+    ECMOut << "SCALARS Protein_rate " << "float"<< endl;
+    ECMOut << "LOOKUP_TABLE " << "default"<< endl;
+    for (uint i = 0; i < nbacteria ; i++)
+    {   for ( uint j=0; j<nnode ; j++)
+    {
+        ECMOut<< bacteria[i].nodes[j].protein <<endl ;
+    }
+    }
+    ECMOut.close();
 }
 
-    
-    //-----------------------------------------------------------------------------------------------------
 
-   void ParaView2 ()
+//-----------------------------------------------------------------------------------------------------
+
+void ParaView2 ()
 {
     int index = index1 ;
     string vtkFileName2 = "Grid"+ to_string(index)+ ".vtk" ;
@@ -866,13 +867,13 @@ void ParaView ()
     }
     index1++ ;
 }
-   
+
 //-----------------------------------------------------------------------------------------------------
 void Track ()
 {
     int m = 0 ;
     int n = 0 ;
-
+    
     for (m=0; m<nx; m++)
     {
         for (n=0; n<ny; n++)
@@ -884,7 +885,7 @@ void Track ()
     {
         for (int j=0; j<2*nnode-1 ; j++)
         {
-           // we add domain to x and y in order to make sure m and n would not be negative integers
+            // we add domain to x and y in order to make sure m and n would not be negative integers
             m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
             slime [m][n] += sr* dt ;
@@ -896,17 +897,48 @@ void Diffusion (double x , double y)
 {
     int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
     int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
-  /*
-    if (slime[m][n] == 0.0  )
-    {
-        diffusion = kblz * temp / eta2 ;
-    }
-    else
-    {
-        diffusion = kblz * temp / eta1 ;
-    }
-   */
     diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
 }
+//-----------------------------------------------------------------------------------------------------
+void InitialReversalTime ()
+{
+    for( int i=0 ; i<nbacteria ; i++)
+    {
+        bacteria[i].reversalTime = (rand() / (RAND_MAX + 1.0)) * reversalPeriod ;
+        bacteria[i].reversalTime -= fmod(bacteria[i].reversalTime , dt ) ;
+    }
+    
+}
+//-----------------------------------------------------------------------------------------------------
+void ReversalTime()
+{
+    for (int i=0; i<nbacteria; i++)
+    {
+        if (bacteria[i].reversalTime >= reversalPeriod )
+        {
+            bacteria[i].reversalTime -= reversalPeriod ;
+            Reverse(i) ;
+        }
+        bacteria[i].reversalTime += dt ;
+    }
+}
+//-----------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
