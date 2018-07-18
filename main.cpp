@@ -18,16 +18,18 @@ using namespace std ;
  */
 
 #define nnode 7                                                // need to be an odd number
-#define nbacteria 18                                           // 2* n^2
+#define nbacteria 200                                           // 2* n^2
 #define points nbacteria*nnode
-#define domainx  40.0
-#define domainy  40.0
+#define domainx  100.0
+#define domainy  100.0
 double initialTime = 4.0 ;
-double runTime = 200.0 ;
+double runTime = 500.0 ;
 
 
 long  idum=(-799);
 
+
+void Myxo () ;
 void Spring() ;
 void Bending() ;
 void Print() ;
@@ -40,7 +42,7 @@ void RandomForce() ;
 void Motor () ;
 void Reverse (int) ;                                               // inverse head and tail
 void Initialization () ;
-void PositionUpdating (double ) ;                               // (time step)
+void PositionUpdating (double  ) ;                               // (time step)
 void ljNodesPosition () ;
 void InitialProtein () ;
 void Connection () ;
@@ -55,9 +57,10 @@ void Track () ;
 void Diffusion (double, double ) ;
 void InitialReversalTime () ;
 void ReversalTime() ;
+double SlimeTrailFollowing (int , double) ;
 //-----------------------------------------------------------------------------------------------------
 double length = 5.0 ;
-double B = 1.0 ;                      // bending constant
+double B = 0.5 ;                      // bending constant
 double tetta0=3.1415 ;               // prefered angle
 double K =  1.0 ;                      // linear spring constant (stiffness)
 double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
@@ -65,15 +68,16 @@ double kblz=1.0 , temp=0.01 , eta1 = 1.0 , eta2 = 5.0 ;
 double diffusion ;
 double dt=0.0001 ;
 double initialStep = 0.0001 ;
-double fmotor = 0.1 ;
-double Rp = 0.3 ;
-double reversalPeriod = 50.0 ;
+double fmotor = 0.1 ;                           //   Ft/(N-1)
+double Rp = 0.3 ;                               // protein exchange rate
+double reversalPeriod = 1000.0 ;
 double sr = 0.25 ;                          // slime rate production
-double kd = 0.1 ;
+double kd = 0.05 ;                           // slime decay rate
 int shiftx = 0 ;
 int shifty = 0 ;
 int index1 = 0 ;                            // needed for ParaView
-
+double slimeEffectiveness = 5.0 ;           // needed for slime trail following
+double s0 = 1 ;
 
 
 class node
@@ -104,6 +108,8 @@ class bacterium
     node duplicate[nnode] ;
     bool copy ;
     double reversalTime ;
+    double fSTFx ;
+    double fSTFy ;
 };
 
 bacterium bacteria[nbacteria];
@@ -116,16 +122,18 @@ double X[nx] ;
 double Y[ny] ;
 double Z[nz]= {0.0} ;
 double slime[nx][ny] ;
-
+int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
 
 
 int main ()
 {
+    srand(time(0)) ;
+    cout<<searchAreaForSlime<<endl ;
     for (int m=0; m<nx; m++)
     {
         for (int n=0; n<ny; n++)
         {
-            slime[m][n] = 1.0  ;
+            slime[m][n] = s0  ;
         }
     }
     
@@ -154,6 +162,7 @@ int main ()
     
     
     //  int  revnt = static_cast<int>(reversalPeriod/ dt) ;   // used to call the old version of Reverse , Reversing all bacteria at the same time
+    //Myxo() ;
     Initialization() ;
     ljNodesPosition() ;
     InitialProtein() ;
@@ -192,7 +201,7 @@ int main ()
             Spring () ;
             Bending() ;
             u_lj() ;
-            RandomForce() ;
+        //    RandomForce() ;
             Motor () ;
             Track() ;
             Connection() ;
@@ -233,11 +242,11 @@ void PositionUpdating (double t)
         for(int j=0 ; j<nnode; j++)
         {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
             bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
-            bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+     //       bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
             bacteria[i].nodes[j].x += t* (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
             
             bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fSpringy + bacteria[i].nodes[j].fBendingy ) * diffusion / (kblz * temp) ;
-            bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+      //      bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
             
             bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fljy + bacteria[i].nodes[j].fMotory) * diffusion /(kblz*temp);
             
@@ -448,9 +457,16 @@ void Motor()
     {   for(int j=0 ; j<nnode; j++)
     {
         if(j==0)
-        {   bacteria[i].nodes[j].fMotorx =  fmotor * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;
-            bacteria[i].nodes[j].fMotory =  fmotor * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y)/ Distance(i,j,i,j+1) ;
+        {
+            double fs =  SlimeTrailFollowing(i, length/2) ;
             
+            
+            bacteria[i].nodes[j].fMotorx =  (fmotor - fs ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;                          // force to the direction of head
+            
+            bacteria[i].nodes[j].fMotory =  (fmotor - fs ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y)/ Distance(i,j,i,j+1) ;                          // force to the direction of head
+            
+            bacteria[i].nodes[j].fMotorx += bacteria[i].fSTFx ;     // Fh + Fs
+            bacteria[i].nodes[j].fMotory += bacteria[i].fSTFy ;
         }
         else
         {
@@ -796,15 +812,16 @@ void ParaView ()
     }
     ECMOut<< endl;
     ECMOut<< "CELLS " << points-1<< " " << 3 *(points-1)<< endl;
-    for (uint i = 0; i < (points-1); i++)
+   
+    for (uint i = 0; i < (points-1); i++)           //number of connections per node
     {
         
         ECMOut << 2 << " " << i << " "
         << i+1 << endl;
         
     }
-    
-    ECMOut << "CELL_TYPES " << points-1<< endl;
+
+    ECMOut << "CELL_TYPES " << points-1<< endl;             //connection type
     for (uint i = 0; i < points-1; i++) {
         ECMOut << "3" << endl;
     }
@@ -878,7 +895,7 @@ void Track ()
     {
         for (n=0; n<ny; n++)
         {
-            slime[m][n] -= kd * dt * (slime[m][n]-1)  ;
+            slime[m][n] -= kd * dt * (slime[m][n]-s0)  ;
         }
     }
     for (int i=0; i<nbacteria; i++)
@@ -897,7 +914,8 @@ void Diffusion (double x , double y)
 {
     int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
     int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
-    diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+//  diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+    diffusion = kblz * temp/ eta1 ;
 }
 //-----------------------------------------------------------------------------------------------------
 void InitialReversalTime ()
@@ -917,19 +935,214 @@ void ReversalTime()
         if (bacteria[i].reversalTime >= reversalPeriod )
         {
             bacteria[i].reversalTime -= reversalPeriod ;
-            Reverse(i) ;
+     //       Reverse(i) ;
         }
         bacteria[i].reversalTime += dt ;
     }
 }
 //-----------------------------------------------------------------------------------------------------
+double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of the search area
+{
+    int m=0   ;
+    int n=0   ;
+    int gridX ;
+    int gridY ;
+    double deltax ;
+    double deltay ;
+    double r ;
+    int region = 2 ;
+    double totalSlimeInSearchArea = 0.0 ;
+    double gridInRegions [5] = { } ;                // number of grids in each region
+    double gridWithSlime [5] = { } ;                   // number of grids containing slime
+    double slimeRegions[5] = { }   ;                // the amount of slime in each region
+    /*
+     0:  area between 0 and 36
+     1:  area between 36 and 72
+     2:  area between 72 and 108
+     3:  area between 108 and 144
+     4:  area between 144 and 180
+     */
+    
+    double ax = bacteria[i].nodes[0].x - bacteria[i].nodes[1].x ;
+    double ay = bacteria[i].nodes[0].y - bacteria[i].nodes[1].y ;
+    double Cos = ax/sqrt(ax*ax+ay*ay) ;
+    double orientationBacteria = acos(Cos)* 180 / 3.1415 ;        // orientation of the bacteria
+    if(ay<0) orientationBacteria *= -1 ;
+    double alfa ;
+    
+    m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].x + domainx , domainx) / dx ) ) ) % nx  ;
+    n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].y + domainy , domainy) / dy ) ) ) % ny  ;
+    for (int sx = -1*searchAreaForSlime ; sx <= searchAreaForSlime ; sx++)
+    {
+        for (int sy = -1*searchAreaForSlime ; sy<= searchAreaForSlime ; sy++ )
+        {
+            gridX = (m+sx) % nx ;
+            gridY = (n+sy) % ny ;
+            ax = sx * dx + dx/2 ;
+            ay = sy * dy + dy/2 ;
+            Cos = ax/ sqrt(ax * ax + ay * ay) ;
+            alfa = acos(Cos)*180 / 3.1415 ;
+            if (ay<0) alfa *= -1 ;
+            double gridAngleInSearchArea =  fmod ( alfa - orientationBacteria, 360 ) ;       // using alfa for searching among grids, Using fmod, because the result should be in the range (-180, 180 ) degree
+            
+            if (gridAngleInSearchArea >= -90 && gridAngleInSearchArea <= 90 )
+            {
+                deltax = ((m+sx)*dx + dx/2 ) - bacteria[i].nodes[0].x ;
+                deltay = ((n+sy)*dy + dy/2 ) - bacteria[i].nodes[0].y ;
+                r = sqrt (deltax*deltax + deltay*deltay) ;
+                if ( r < R)
+                {
+                    if (gridAngleInSearchArea > -90 && gridAngleInSearchArea <= -54)
+                    {
+                        
+                        slimeRegions[0] += slime[gridX][gridY] ;
+                        gridInRegions[0] += 1 ;
+                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
+                        {
+                            gridWithSlime[0] += 1 ;
+                        }
+                    }
+                    else if (gridAngleInSearchArea > -54 && gridAngleInSearchArea <= -18)
+                    {
+                        
+                        slimeRegions[1] += slime[gridX][gridY] ;
+                        gridInRegions[1] += 1 ;
+                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+                        {
+                            gridWithSlime[1] += 1 ;
+                        }
+                    }
+                    else if (gridAngleInSearchArea> -18 && gridAngleInSearchArea <= 18)
+                    {
+                        
+                        slimeRegions[2] += slime[gridX][gridY] ;
+                        gridInRegions[2] += 1 ;
+                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+                        {
+                            gridWithSlime[2] += 1 ;
+                        }
+                    }
+                    
+                    else if (gridAngleInSearchArea > 18 && gridAngleInSearchArea <= 54)
+                    {
+                        
+                        slimeRegions[3] += slime[gridX][gridY] ;
+                        gridInRegions[3] += 1 ;
+                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+                        {
+                            gridWithSlime[3] += 1 ;
+                        }
+                    }
 
-// is xcode connected to github or not?
+                    else if (gridAngleInSearchArea > 54 && gridAngleInSearchArea <= 90)
+                    {
+                      
+                        slimeRegions[4] += slime[gridX][gridY] ;
+                        gridInRegions[4] += 1 ;
+                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
+                        {
+                            gridWithSlime[4] += 1 ;
+                        }
+                    }
+                    
+                    totalSlimeInSearchArea += slime[gridX][gridY] ;
+                    
+                }
+            
+            }
+            
+        }
+    }
+    
+    if (totalSlimeInSearchArea < 0.000001)
+    {
+        bacteria[i].fSTFx = 0.0 ;
+        bacteria[i].fSTFy = 0.0 ;
+        // There is no slime in the search area
+        
+    }
+    /*
+    else
+    {   double mostFilledRegion= 0.0 ;
+        for (int i=0 ; i < 5 ; i++)
+        {
+            if (( gridWithSlime[i] / gridInRegions[i] ) > 0.8 )
+            {
+                if ( abs(i-2) < abs(region-2) )             // lower change in angle
+                {
+                mostFilledRegion = slimeRegions[i] ;
+                region = i ;
+                }
+                else if ( ( abs(i-2) == abs(region-2) ) && rand() % 2 ==0 )     //choosing between two randomly
+                {
+                        mostFilledRegion = slimeRegions[i] ;
+                        region = i ;
+                }
+            }
+        }
+        if ( region ==6) region = 2 ;                       // re-initialization after checking the conditions
+        alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
+        // using alfa(radiant) for direction of the force
+        // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
+        
+        bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
+        bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+        // (S/S0) is not included yet
+    }
+     */
+    else
+    {   double maxSlimeRegion= 0.0 ;
+        for (int i=0 ; i < 5 ; i++)
+        {
+            if (slimeRegions[i] > maxSlimeRegion )
+            {
+                    maxSlimeRegion = slimeRegions[i] ;
+                    region = i ;
+            }
+        }
+        for (int i=0 ; i<5 ; i++)
+        {
+            if ( (slimeRegions[i] > 0.8 * maxSlimeRegion))
+            {
+                if ( abs(i-2) < abs(region-2) )
+                {
+                    region = i ;
+                }
+          
+       //       else if ( abs(i-2) == abs(region-2) && rand() % 2 ==0  )
+                else if ( abs(i-2) == abs(region-2) && slimeRegions[i] > slimeRegions[region])
+                {
+                    region = i ;
+                }
+
+            }
+        }
+        alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
+        // using alfa(radiant) for direction of the force
+        // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
+        
+        bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
+        bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+        // (S/S0) is not included yet
+    }
+    return  sqrt(bacteria[i].fSTFx * bacteria[i].fSTFx + bacteria[i].fSTFy * bacteria[i].fSTFy) ;
+}
 
 
+//-----------------------------------------------------------------------------------------------------
 
-
-
+void Myxo ()
+{
+    for (int i=0 ; i<nbacteria ; i++)
+    {
+        for ( int j=0 ; j<nnode ; j++)
+        {
+            bacteria[i].nodes[j].x = i* nnode + j ;
+            bacteria[i].nodes[j].y = 2*i*nnode + 2* j  ;
+        }
+    }
+    
+}
 
 
 
