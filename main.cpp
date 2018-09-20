@@ -6,22 +6,13 @@
 #include "ranum2.h"
 #include <fstream>
 using namespace std ;
-/*
- namespace patch{
- template <typename  T> string to_string (const T& n)
- {
- ostringstream stm ;
- stm << n ;
- return stm.str() ;
- }
- }
- */
 
 #define nnode 7                                                // need to be an odd number
-#define nbacteria 200                                           // 2* n^2
+#define nbacteria 2                                            // 2* n^2
 #define points nbacteria*nnode
-#define domainx  100.0
-#define domainy  100.0
+#define domainx  20.0
+#define domainy  20.0
+#define nPili   10
 double initialTime = 4.0 ;
 double runTime = 500.0 ;
 
@@ -34,8 +25,8 @@ void Spring() ;
 void Bending() ;
 void Print() ;
 double Distance (int ,int, int, int) ;                                     // bacteria, node, bacteria, node
-double Distance2 (double, double, double, double, int, int ) ;             //x1,y1,x2,y2, shiftx, shifty
-double MinDistance (double , double , double , double) ;                             // x1,y1,x2,y2
+double Distance2 (double x1, double y1 , double x2, double y2, int shiftx, int shifty ) ;
+double MinDistance (double x1 , double y1 , double x2 , double y2) ;
 double Cos0ijk(int, int) ;
 double u_lj () ;
 void RandomForce() ;
@@ -53,33 +44,67 @@ void Duplicate () ;
 void Merge () ;
 void ParaView ( ) ;                                    // (current time, time step)
 void ParaView2 () ;
-void Track () ;
+void SlimeTrace () ;
 void Diffusion (double, double ) ;
 void InitialReversalTime () ;
 void ReversalTime() ;
 double SlimeTrailFollowing (int , double) ;
+void PiliForce () ;
+void InitialPili () ;
+double AngleOfVector (double x1, double y1 , double x2 , double y2 ) ;      // (x1,y1,x2,y2)
 //-----------------------------------------------------------------------------------------------------
+//Bacteria properties
 double length = 5.0 ;
 double B = 0.5 ;                      // bending constant
-double tetta0=3.1415 ;               // prefered angle
+double tetta0=3.1415 ;               // prefered angle, Pi
 double K =  1.0 ;                      // linear spring constant (stiffness)
 double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
-double kblz=1.0 , temp=0.01 , eta1 = 1.0 , eta2 = 5.0 ;
-double diffusion ;
-double dt=0.0001 ;
-double initialStep = 0.0001 ;
 double fmotor = 0.1 ;                           //   Ft/(N-1)
 double Rp = 0.3 ;                               // protein exchange rate
 double reversalPeriod = 1000.0 ;
+
+//-----------------------------------------------------------------------------------------------------
+//domain and medium properties
+double kblz=1.0 , temp=0.01 , eta1 = 1.0 , eta2 = 5.0 ;
+double diffusion ;
+int shiftx = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
+int shifty = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
+const double dx= 0.5 ;
+const double dy= 0.5 ;
+const int nx = static_cast<int>(domainx/dx) ;               //number of grids in X-axis
+const int ny = static_cast<int> (domainy/dy) ;              //number of grids in Y-axis
+const int nz = 1 ;
+double X[nx] ;
+double Y[ny] ;
+double Z[nz]= {0.0} ;
+
+//-----------------------------------------------------------------------------------------------------
+//slime properties
 double sr = 0.25 ;                          // slime rate production
 double kd = 0.05 ;                           // slime decay rate
-int shiftx = 0 ;
-int shifty = 0 ;
-int index1 = 0 ;                            // needed for ParaView
 double slimeEffectiveness = 5.0 ;           // needed for slime trail following
 double s0 = 1 ;
+double slime[nx][ny] ;
+int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
 
 
+//-----------------------------------------------------------------------------------------------------
+//pili properties
+double piliMaxLength = 2.5 ;                       //pili maximum length
+double vProPili = 1 ;                                 // constant protrude velocity
+double vRetPili0 = 1 ;                                // constant retraction rate when the pili is not connected
+double kPullPili = 0.2 ;
+double fStall = 10.0 ;
+double averageLengthFree = 0.0 ;
+double nAttachedPili = 0.0 ;
+
+//-----------------------------------------------------------------------------------------------------
+//simulation parameters
+double dt=0.0001 ;
+double initialStep = 0.0001 ;
+int index1 = 0 ;                                     // needed for ParaView
+
+//-----------------------------------------------------------------------------------------------------
 class node
 {   public:
     double x ;
@@ -97,6 +122,25 @@ class node
     double protein ;
     
 };
+class pilus
+{   public:
+    double lFree ;                                // pili free length
+    double retractionRate ;
+    double vRet ;                                // retraction rate for connected pili
+    double subAttachmentRate = 1 ;
+    double subDetachmentRate = 0.1 ;
+    double lContour ;
+    double F ;                  //magnitude of the force
+    double fx ;
+    double fy ;
+    double xEnd ;                   //x component of the end of the pili
+    double yEnd ;                   //y component of the end of the pili
+    bool piliSubs = true ;                 // true for pili-substrate connection and false for pili-pili connection
+                                    // we change this parameter for simulation
+    bool attachment ;
+    bool retraction ;
+    
+};
 
 class bacterium
 {   public:
@@ -110,24 +154,14 @@ class bacterium
     double reversalTime ;
     double fSTFx ;
     double fSTFy ;
+    pilus pili[nPili] ;
 };
 
 bacterium bacteria[nbacteria];
-const double dx= 0.5 ;
-const double dy= 0.5 ;
-const int nx = static_cast<int>(domainx/dx) ;
-const int ny = static_cast<int> (domainy/dy) ;
-const int nz = 1 ;
-double X[nx] ;
-double Y[ny] ;
-double Z[nz]= {0.0} ;
-double slime[nx][ny] ;
-int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
-
 
 int main ()
 {
-    srand(time(0)) ;
+    srand(time (0)) ;
     cout<<searchAreaForSlime<<endl ;
     for (int m=0; m<nx; m++)
     {
@@ -167,9 +201,16 @@ int main ()
     ljNodesPosition() ;
     InitialProtein() ;
     InitialReversalTime() ;
+    InitialPili () ;
     for (int i=0; i<nbacteria; i++)
     {
         bacteria[i].connection[i]=0.0 ;
+        for (int j=0 ; j<nnode ; j++)
+        {
+            bacteria[i].nodes[j].xdev = 0.0 ;
+            bacteria[i].nodes[j].ydev = 0.0 ;
+            
+        }
     }
     
     
@@ -202,10 +243,11 @@ int main ()
             Bending() ;
             u_lj() ;
         //    RandomForce() ;
-            Motor () ;
-            Track() ;
+        //    Motor () ;
+            SlimeTrace() ;
             Connection() ;
             ProteinExchange() ;
+            PiliForce() ;
             
             
             if (l%inverseDt==0)
@@ -219,7 +261,8 @@ int main ()
                 
                 ParaView ()  ;
                 ParaView2() ;
-                cout<<(l-initialNt)/inverseDt<<endl ;
+             //cout<<(l-initialNt)/inverseDt<<endl ;
+                cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 
             }
             PositionUpdating(dt) ;
@@ -242,14 +285,25 @@ void PositionUpdating (double t)
         for(int j=0 ; j<nnode; j++)
         {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
             bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
-     //       bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
-            bacteria[i].nodes[j].x += t* (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
+        //    bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+            bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
             
             bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fSpringy + bacteria[i].nodes[j].fBendingy ) * diffusion / (kblz * temp) ;
-      //      bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+       //     bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
             
             bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fljy + bacteria[i].nodes[j].fMotory) * diffusion /(kblz*temp);
             
+            // F pili
+       
+            if (j==0)
+            {
+                for (int m=0 ; m<nPili ; m++)
+                {
+                    bacteria[i].nodes[j].x += t * (bacteria[i].pili[m].fx) * diffusion / (kblz*temp) ;
+                    bacteria[i].nodes[j].y += t * (bacteria[i].pili[m].fy) * diffusion / (kblz*temp) ;
+                }
+            }
+        
         }
     }
     ljNodesPosition() ;
@@ -667,7 +721,7 @@ void Duplicate()
 {
     for (int i=0; i<nbacteria; i++)
     {   bacteria[i].copy = false ;              // No duplicate is needed
-        if (bacteria[i].nodes[(nnode-1)/2].x >5 && bacteria[i].nodes[(nnode-1)/2].x <(domainx-5) && bacteria[i].nodes[(nnode-1)/2].y > 5 && bacteria[i].nodes[(nnode-1)/2].y < (domainy-5) )
+        if (bacteria[i].nodes[(nnode-1)/2].x > length && bacteria[i].nodes[(nnode-1)/2].x <(domainx-length) && bacteria[i].nodes[(nnode-1)/2].y > length && bacteria[i].nodes[(nnode-1)/2].y < (domainy-length) )
         {
             for (int j=0; j<nnode; j++)
             {
@@ -878,15 +932,15 @@ void ParaView2 ()
         for (int j = 0; j < ny; j++) {
             for (int i = 0; i < nx; i++) {
                 SignalOut << slime[i][j] << endl;
-                
             }
         }
     }
+                
     index1++ ;
 }
 
 //-----------------------------------------------------------------------------------------------------
-void Track ()
+void SlimeTrace ()
 {
     int m = 0 ;
     int n = 0 ;
@@ -912,8 +966,8 @@ void Track ()
 //-----------------------------------------------------------------------------------------------------
 void Diffusion (double x , double y)
 {
-    int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
-    int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
+ //int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
+//  int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
 //  diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
     diffusion = kblz * temp/ eta1 ;
 }
@@ -1143,13 +1197,191 @@ void Myxo ()
     }
     
 }
+//-----------------------------------------------------------------------------------------------------
+void InitialPili ()
+{
+    for (int i=0 ; i<nbacteria ; i++)
+    {
+        for ( int j=0 ; j<nPili ; j++)
+        {
+            bacteria[i].pili[j].lFree = rand() / (RAND_MAX + 1.0) *piliMaxLength ;
+            bacteria[i].pili[j].attachment = false ;
+            bacteria[i].pili[j].retraction = false ;
+            bacteria[i].pili[j].fx = 0 ;
+            bacteria[i].pili[j].fy = 0 ;
+            bacteria[i].pili[j].F = 0 ;
+            
+            
+            
+            /*
+            
+            if(rand() / (RAND_MAX + 1.0) < 0.5 )
+            {
+                bacteria[i].pili[j].retraction = true ;
+            }
+            else
+            {
+                bacteria[i].pili[j].retraction = false ;
+            }
+            if (rand() / (RAND_MAX + 1.0) < 0.5 )
+            {
+                bacteria[i].pili[j].attachment = true ;
+                bacteria[i].pili[j].retraction = true ;
+            }
+            else
+            {
+                bacteria[i].pili[j].attachment = false ;
+            }
+             */
+        }
+    }
+}
 
 
 
+//-----------------------------------------------------------------------------------------------------
+void PiliForce ()
+{
+    
+    // retraction
+    //boundry conditions in domain size and also angle
+    
+    double orientationBacteria ;
+    double alfa ;                           // dummy name for calculating different angles
+    nAttachedPili = 0 ;
+    
+    for (int i=0 ; i<nbacteria ; i++)
+    {
+        
+        orientationBacteria = AngleOfVector(bacteria[i].nodes[1].x , bacteria[i].nodes[1].y , bacteria[i].nodes[0].x, bacteria[i].nodes[0].y);        //degree
+        for ( int j=0 ; j<nPili ; j++)
+        {
+            if( bacteria[i].pili[j].attachment== false)     //if the pili is detached
+            {
+                //lambda substrate attachment
+                if (rand() / (RAND_MAX + 1.0) < bacteria[i].pili[j].subAttachmentRate* dt)
+                {
+                    bacteria[i].pili[j].attachment = true ;
+                    bacteria[i].pili[j].retraction = true ;
+                    nAttachedPili += 1 ;
+            //now it is attached, then we calculate the end point
+                    
+                    if (bacteria[i].pili[j].piliSubs)       //pili-substrate interaction
+                    {
+                        alfa = orientationBacteria + 180/nPili * (j+1/2) - 90 ;      //angle in degree
+                        bacteria[i].pili[j].xEnd = fmod ( bacteria[i].nodes[0].x + bacteria[i].pili[j].lFree * cos(alfa*tetta0/180) + domainx ,domainx ) ;
+                        bacteria[i].pili[j].yEnd = fmod ( bacteria[i].nodes[0].y + bacteria[i].pili[j].lFree * sin(alfa*tetta0/180) + domainy, domainy ) ;
+                    }
+                    else            //pili-pili interaction
+                    {
+                        //calculate the intersection interval and intersection point
+                    }
+                    
+                }
+            }
+            
+            else                    //if the pili is attached
+            {
+                //lambda detachment
+                //......
+                if ( rand() / (RAND_MAX + 1.0) < bacteria[i].pili[j].subDetachmentRate* dt )
+                {
+                    bacteria[i].pili[j].attachment = false ;
+                    bacteria[i].pili[j].fx = 0.0 ;
+                    bacteria[i].pili[j].fy = 0.0 ;
+                    bacteria[i].pili[j].F = 0.0 ;
+                    
+                }
+                else        //if the pili remains attached
+                {
+                    nAttachedPili += 1 ;
+                    if (bacteria[i].pili[j].piliSubs)
+                    {
+                        // calculate forces for pili-substrate
+                        bacteria[i].pili[j].lContour = MinDistance(bacteria[i].nodes[0].x, bacteria[i].nodes[0].y, bacteria[i].pili[j].xEnd, bacteria[i].pili[j].yEnd ) ;
+                        
+                        alfa = AngleOfVector(bacteria[i].nodes[0].x + shiftx * domainx , bacteria[i].nodes[0].y + shifty * domainy , bacteria[i].pili[j].xEnd,bacteria[i].pili[j].yEnd) ;
+                        
+                        bacteria[i].pili[j].F = max(0.0 , kPullPili * (bacteria[i].pili[j].lContour-bacteria[i].pili[j].lFree) ) ;
+                        
+                        bacteria[i].pili[j].fx = bacteria[i].pili[j].F * cos(alfa*tetta0/180)  ;
+                        
+                        bacteria[i].pili[j].fy = bacteria[i].pili[j].F * sin(alfa*tetta0/180)  ;
+                        
+                        
+                    }
+                    
+                    else
+                    {
+                        //calculate forces for pili pili
+                    }
+                }
+                
+            }
+        }
+    }
+    averageLengthFree = 0 ;
+    for (int i=0 ; i<nbacteria ; i++)
+    {
+        for ( int j=0 ; j<nPili ; j++)
+        {
+            if(bacteria[i].pili[j].attachment)
+            {
+                bacteria[i].pili[j].retraction = true ;
+            }
+            //if the bacteria is not attached, switch state between Protrusion and Retraction
+            else if (rand() / (RAND_MAX + 1.0) < bacteria[i].pili[j].retractionRate * dt)
+            {
+                bacteria[i].pili[j].retraction = ! bacteria[i].pili[j].retraction ;
+            }
+            
+            if (bacteria[i].pili[j].retraction )
+            {
+                bacteria[i].pili[j].vRet = vRetPili0*(1-bacteria[i].pili[j].F / fStall)  ;
+                if (bacteria[i].pili[j].vRet < 0.0)
+                {
+                    bacteria[i].pili[j].vRet = 0.0 ;
+                }
+                bacteria[i].pili[j].lFree += -bacteria[i].pili[j].vRet * dt ;
+                if (bacteria[i].pili[j].lFree< 0.0)
+                {
+                    bacteria[i].pili[j].lFree = 0.0 ;
+                    bacteria[i].pili[j].attachment = false ;      //the pili is detached when its length is zero
+                    bacteria[i].pili[j].retraction = false ;
+                    bacteria[i].pili[j].fx = 0.0 ;
+                    bacteria[i].pili[j].fy = 0.0 ;
+                    bacteria[i].pili[j].F  = 0.0 ;
+                    
+                    
+                }
+            }
+            else
+            {
+                bacteria[i].pili[j].lFree += vProPili * dt ;
+                if ( bacteria[i].pili[j].lFree > piliMaxLength )     //pili length is limited
+                {
+                    bacteria[i].pili[j].lFree = piliMaxLength ;
+                }
+            }
+            averageLengthFree += bacteria[i].pili[j].lFree / (nbacteria * nPili) ;
+            
+        }
+    }
+    
+}
 
-
-
-
+//------------------------------------------------------------------------------------------------------------
+double AngleOfVector (double x1,double y1,double x2,double y2)
+{
+    double ax = x2 - x1 ;
+    double ay = y2 - y1 ;
+    double Cos = ax/sqrt(ax*ax+ay*ay) ;
+    double angle = acos(Cos)* 180 / 3.1415 ;
+    if(ay<0) angle *= -1 ;
+    return angle ;                                   // (-180,180)
+    
+}
+//------------------------------------------------------------------------------------------------------------
 
 
 
