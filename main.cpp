@@ -10,8 +10,8 @@ using namespace std ;
 #define nnode 7                                                // need to be an odd number
 #define nbacteria 2                                            // 2* n^2
 #define points nbacteria*nnode
-#define domainx  20.0
-#define domainy  20.0
+#define domainx  40.0
+#define domainy  40.0
 #define nPili   10
 double initialTime = 4.0 ;
 double runTime = 500.0 ;
@@ -91,9 +91,9 @@ int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
 //-----------------------------------------------------------------------------------------------------
 //pili properties
 double piliMaxLength = 2.5 ;                       //pili maximum length
-double vProPili = 1 ;                                 // constant protrude velocity
-double vRetPili0 = 1 ;                                // constant retraction rate when the pili is not connected
-double kPullPili = 0.2 ;
+double vProPili = 0.5 ;                                 // constant protrude velocity
+double vRetPili0 = 0.5 ;                                // constant retraction rate when the pili is not connected
+double kPullPili = 1 ;
 double fStall = 10.0 ;
 double averageLengthFree = 0.0 ;
 double nAttachedPili = 0.0 ;
@@ -196,8 +196,8 @@ int main ()
     
     
     //  int  revnt = static_cast<int>(reversalPeriod/ dt) ;   // used to call the old version of Reverse , Reversing all bacteria at the same time
-    //Myxo() ;
-    Initialization() ;
+    Myxo() ;
+  //  Initialization() ;
     ljNodesPosition() ;
     InitialProtein() ;
     InitialReversalTime() ;
@@ -224,7 +224,7 @@ int main ()
             Spring () ;
             Bending() ;
             u_lj() ;
-            RandomForce() ;
+      //      RandomForce() ;
             /*
              if (l%inverseInitialStep==0)
              {
@@ -1191,8 +1191,12 @@ void Myxo ()
     {
         for ( int j=0 ; j<nnode ; j++)
         {
-            bacteria[i].nodes[j].x = i* nnode + j ;
-            bacteria[i].nodes[j].y = 2*i*nnode + 2* j  ;
+       //     bacteria[i].nodes[j].x = i* nnode + j ;
+         //   bacteria[i].nodes[j].y = 2*i*nnode + 2* j  ;
+            
+            bacteria[i].nodes[j].x = 5 + j ;
+            bacteria[i].nodes[j].y = 10*(i+1) ;
+            
         }
     }
     
@@ -1207,9 +1211,9 @@ void InitialPili ()
             bacteria[i].pili[j].lFree = rand() / (RAND_MAX + 1.0) *piliMaxLength ;
             bacteria[i].pili[j].attachment = false ;
             bacteria[i].pili[j].retraction = false ;
-            bacteria[i].pili[j].fx = 0 ;
-            bacteria[i].pili[j].fy = 0 ;
-            bacteria[i].pili[j].F = 0 ;
+            bacteria[i].pili[j].fx = 0.0 ;
+            bacteria[i].pili[j].fy = 0.0 ;
+            bacteria[i].pili[j].F = 0.0 ;
             
             
             
@@ -1268,9 +1272,9 @@ void PiliForce ()
                     
                     if (bacteria[i].pili[j].piliSubs)       //pili-substrate interaction
                     {
-                        alfa = orientationBacteria + 180/nPili * (j+1/2) - 90 ;      //angle in degree
-                        bacteria[i].pili[j].xEnd = fmod ( bacteria[i].nodes[0].x + bacteria[i].pili[j].lFree * cos(alfa*tetta0/180) + domainx ,domainx ) ;
-                        bacteria[i].pili[j].yEnd = fmod ( bacteria[i].nodes[0].y + bacteria[i].pili[j].lFree * sin(alfa*tetta0/180) + domainy, domainy ) ;
+                        alfa = orientationBacteria + 180.0/nPili * (j+1/2.0) -90.0 ;    //angle in degree
+                        bacteria[i].pili[j].xEnd = fmod ( bacteria[i].nodes[0].x + bacteria[i].pili[j].lFree * cos(alfa*tetta0/180.0) + domainx ,domainx ) ;
+                        bacteria[i].pili[j].yEnd = fmod ( bacteria[i].nodes[0].y + bacteria[i].pili[j].lFree * sin(alfa*tetta0/180.0) + domainy, domainy ) ;
                     }
                     else            //pili-pili interaction
                     {
@@ -1304,9 +1308,9 @@ void PiliForce ()
                         
                         bacteria[i].pili[j].F = max(0.0 , kPullPili * (bacteria[i].pili[j].lContour-bacteria[i].pili[j].lFree) ) ;
                         
-                        bacteria[i].pili[j].fx = bacteria[i].pili[j].F * cos(alfa*tetta0/180)  ;
+                        bacteria[i].pili[j].fx = bacteria[i].pili[j].F * cos(alfa*tetta0/180.0)  ;
                         
-                        bacteria[i].pili[j].fy = bacteria[i].pili[j].F * sin(alfa*tetta0/180)  ;
+                        bacteria[i].pili[j].fy = bacteria[i].pili[j].F * sin(alfa*tetta0/180.0)  ;
                         
                         
                     }
@@ -1376,7 +1380,7 @@ double AngleOfVector (double x1,double y1,double x2,double y2)
     double ax = x2 - x1 ;
     double ay = y2 - y1 ;
     double Cos = ax/sqrt(ax*ax+ay*ay) ;
-    double angle = acos(Cos)* 180 / 3.1415 ;
+    double angle = acos(Cos)* 180.0 / 3.1415 ;
     if(ay<0) angle *= -1 ;
     return angle ;                                   // (-180,180)
     
