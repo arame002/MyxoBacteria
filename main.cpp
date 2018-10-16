@@ -1522,8 +1522,8 @@ int PowerLawExponent ()
     {
         for (int m = 0 ; m<nx; m++)
         {
-            if(visit[m][n] > maxValue && visit[m][n] != 0 ) maxValue = visit[m][n];
-            if(visit[m][n] < minValue && visit[m][n] != 0 ) minValue = visit[m][n];
+            if(visit[m][n] > maxValue ) maxValue = visit[m][n];
+            if(visit[m][n] < minValue ) minValue = visit[m][n];
         }
     }
     alfaMin = max(floor (log10(minValue)) , 0.0) ;
