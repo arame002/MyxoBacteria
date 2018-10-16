@@ -10,13 +10,13 @@
 using namespace std ;
 
 #define nnode 7                                                // need to be an odd number
-#define nbacteria 8                                            // 2* n^2
+#define nbacteria 200                                            // 2* n^2
 #define points nbacteria*nnode
-#define domainx  40.0
-#define domainy  40.0
-#define nPili   0
+#define domainx  100.0
+#define domainy  100.0
+#define nPili   1
 double initialTime = 4.0 ;
-double runTime = 500.0 ;
+double runTime = 1000.0 ;
 
 long  idum=(-799);
 // Inverse function is off inside the InverseTime
