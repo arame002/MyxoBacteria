@@ -5,20 +5,22 @@
 #include <cstdlib>
 #include "ranum2.h"
 #include <fstream>
+//#include <algorithm>
+#include <vector>
 using namespace std ;
 
 #define nnode 7                                                // need to be an odd number
-#define nbacteria 2                                            // 2* n^2
+#define nbacteria 8                                            // 2* n^2
 #define points nbacteria*nnode
 #define domainx  40.0
 #define domainy  40.0
-#define nPili   10
+#define nPili   0
 double initialTime = 4.0 ;
 double runTime = 500.0 ;
 
-
 long  idum=(-799);
-
+// Inverse function is off inside the InverseTime
+// Function: WriteInFile, RunMode ,
 
 void Myxo () ;
 void Spring() ;
@@ -52,6 +54,9 @@ double SlimeTrailFollowing (int , double) ;
 void PiliForce () ;
 void InitialPili () ;
 double AngleOfVector (double x1, double y1 , double x2 , double y2 ) ;      // (x1,y1,x2,y2)
+void SurfaceCoverage () ;
+void VisitsPerGrid () ;
+int PowerLawExponent () ;
 //-----------------------------------------------------------------------------------------------------
 //Bacteria properties
 double length = 5.0 ;
@@ -77,6 +82,10 @@ const int nz = 1 ;
 double X[nx] ;
 double Y[ny] ;
 double Z[nz]= {0.0} ;
+int visit[nx][ny] ;
+vector<double> frequency ;
+int numOfClasses = 1 ;
+int fNoVisit = 0 ;
 
 //-----------------------------------------------------------------------------------------------------
 //slime properties
@@ -85,6 +94,8 @@ double kd = 0.05 ;                           // slime decay rate
 double slimeEffectiveness = 5.0 ;           // needed for slime trail following
 double s0 = 1 ;
 double slime[nx][ny] ;
+int surfaceCoverage[nx][ny] ;
+double coveragePercentage = 0 ;
 int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
 
 
@@ -93,8 +104,8 @@ int searchAreaForSlime = static_cast<int> (round((length/2)/ min(dx , dy))) ;
 double piliMaxLength = 2.5 ;                       //pili maximum length
 double vProPili = 0.5 ;                                 // constant protrude velocity
 double vRetPili0 = 0.5 ;                                // constant retraction rate when the pili is not connected
-double kPullPili = 1 ;
-double fStall = 10.0 ;
+double kPullPili = 2000 ;
+double fStall = 180.0 ;
 double averageLengthFree = 0.0 ;
 double nAttachedPili = 0.0 ;
 
@@ -120,6 +131,7 @@ class node
     double fMotorx ;
     double fMotory ;
     double protein ;
+
     
 };
 class pilus
@@ -136,7 +148,7 @@ class pilus
     double xEnd ;                   //x component of the end of the pili
     double yEnd ;                   //y component of the end of the pili
     bool piliSubs = true ;                 // true for pili-substrate connection and false for pili-pili connection
-                                    // we change this parameter for simulation
+                                        // we change this parameter for simulation
     bool attachment ;
     bool retraction ;
     
@@ -162,12 +174,14 @@ bacterium bacteria[nbacteria];
 int main ()
 {
     srand(time (0)) ;
-    cout<<searchAreaForSlime<<endl ;
+    cout<<"Search area for slime is "<<searchAreaForSlime<<endl ;
     for (int m=0; m<nx; m++)
     {
         for (int n=0; n<ny; n++)
         {
             slime[m][n] = s0  ;
+            surfaceCoverage[m][n] = 0 ;
+            visit[m][n] = 0 ;
         }
     }
     
@@ -184,6 +198,10 @@ int main ()
     //-----------------------------------------------------------------------------------------------------
     ofstream ProteinLevelFile ;
     ProteinLevelFile.open("ProteinLevelFile.txt") ;
+    ofstream NumberOfVisits ;
+    NumberOfVisits.open("NumberOfVisits.txt") ;
+    ofstream FrequencyOfVisit ;
+    FrequencyOfVisit.open("FrequncyOfVisit.txt") ;
     
     //   cout<<x0<<endl ;
     cout<<"program is running"<<endl  ;
@@ -196,8 +214,8 @@ int main ()
     
     
     //  int  revnt = static_cast<int>(reversalPeriod/ dt) ;   // used to call the old version of Reverse , Reversing all bacteria at the same time
-    Myxo() ;
-  //  Initialization() ;
+   // Myxo() ;
+    Initialization() ;
     ljNodesPosition() ;
     InitialProtein() ;
     InitialReversalTime() ;
@@ -237,39 +255,61 @@ int main ()
         }
         else
         {
-            ReversalTime() ;
+        //   ReversalTime() ;
             AllNodes() ;
             Spring () ;
             Bending() ;
             u_lj() ;
         //    RandomForce() ;
-        //    Motor () ;
+            Motor () ;
             SlimeTrace() ;
             Connection() ;
             ProteinExchange() ;
-            PiliForce() ;
+          //  PiliForce() ;
             
             
             if (l%inverseDt==0)
             {
+                SurfaceCoverage() ;
+                VisitsPerGrid() ;
+                int alfaMin = PowerLawExponent() ;
+                
+                for (int m=0; m< nx; m++)
+                {
+                    for (int n=0 ; n < ny ; n++)
+                    {
+                        NumberOfVisits<< visit[m][n]<<'\t' ;
+                    }
+                    NumberOfVisits<<endl ;
+                }
+                NumberOfVisits<<endl<<endl ;
                 
                 for (int i=0; i<nbacteria; i++)
                 {
                     ProteinLevelFile<<bacteria[i].protein<<"," ;
                 }
                 ProteinLevelFile<< endl<<endl ;
+                FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
+                FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
+                FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
+                FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
+                
+                for (int i=0 ; i<numOfClasses ; i++)
+                {
+                    FrequencyOfVisit<< frequency[i]<<'\t' ;
+                }
+                FrequencyOfVisit<<endl<<endl ;
                 
                 ParaView ()  ;
                 ParaView2() ;
-             //cout<<(l-initialNt)/inverseDt<<endl ;
-                cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
-                
+             cout<<(l-initialNt)/inverseDt<<endl ;
+             //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
+            //    cout << coveragePercentage <<endl ;
             }
             PositionUpdating(dt) ;
         }
         
     }
-    
     cout<<"No Bug"<<endl ;
     return 0 ;
 }
@@ -279,19 +319,29 @@ int main ()
  ______________________________________________________________________________*/
 
 void PositionUpdating (double t)
-{
+{   double etaInverse = diffusion / (kblz * temp) ;
+    double totalForceX = 0 ;
+    double totalForceY = 0 ;
     for (int i=0; i<nbacteria; i++)
     {
         for(int j=0 ; j<nnode; j++)
         {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
-            bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fSpringx + bacteria[i].nodes[j].fBendingx ) * diffusion / (kblz * temp) ;
-        //    bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
-            bacteria[i].nodes[j].x += t * (bacteria[i].nodes[j].fljx + bacteria[i].nodes[j].fMotorx) * diffusion / (kblz*temp) ;
+            etaInverse = diffusion / (kblz * temp) ;  
+            totalForceX = bacteria[i].nodes[j].fSpringx ;       // it is not += because the old value is related to another node
+            totalForceX += bacteria[i].nodes[j].fBendingx ;
+            totalForceX += bacteria[i].nodes[j].fljx ;
+            totalForceX += bacteria[i].nodes[j].fMotorx ;
+            bacteria[i].nodes[j].x += t * totalForceX * etaInverse ;
+        //  bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
             
-            bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fSpringy + bacteria[i].nodes[j].fBendingy ) * diffusion / (kblz * temp) ;
-       //     bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+            totalForceY = bacteria[i].nodes[j].fSpringy ;       // it is not += because the old value is related to another node
+            totalForceY += bacteria[i].nodes[j].fBendingy ;
+            totalForceY += bacteria[i].nodes[j].fljy ;
+            totalForceY += bacteria[i].nodes[j].fMotory ;
+            bacteria[i].nodes[j].y += t * totalForceY * etaInverse ;
+            //  bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
             
-            bacteria[i].nodes[j].y += t * (bacteria[i].nodes[j].fljy + bacteria[i].nodes[j].fMotory) * diffusion /(kblz*temp);
+            
             
             // F pili
        
@@ -299,8 +349,8 @@ void PositionUpdating (double t)
             {
                 for (int m=0 ; m<nPili ; m++)
                 {
-                    bacteria[i].nodes[j].x += t * (bacteria[i].pili[m].fx) * diffusion / (kblz*temp) ;
-                    bacteria[i].nodes[j].y += t * (bacteria[i].pili[m].fy) * diffusion / (kblz*temp) ;
+                    bacteria[i].nodes[j].x += t * (bacteria[i].pili[m].fx) * etaInverse ;
+                    bacteria[i].nodes[j].y += t * (bacteria[i].pili[m].fy) * etaInverse ;
                 }
             }
         
@@ -437,7 +487,8 @@ double u_lj()
         bacteria[i].nodes[j].fljy=0.0;
     }
     }
-    double sigma2= (0.5/1.122)*(0.5/1.222) ;          // Rmin = 1.122 * sigma
+    double rMin = 0.6 ;
+    double sigma2= (rMin/1.122)*(rMin/1.222) ;          // Rmin = 1.122 * sigma
     double eps= 0.01 ;
     double ulj=0.0 ;
     rcut2= 6.25 * sigma2  ;                 // rcut=2.5*sigma for Lenard-Jones potential
@@ -512,7 +563,8 @@ void Motor()
     {
         if(j==0)
         {
-            double fs =  SlimeTrailFollowing(i, length/2) ;
+            double fs = 0.0 ;
+            fs = SlimeTrailFollowing(i, length/2) ;
             
             
             bacteria[i].nodes[j].fMotorx =  (fmotor - fs ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;                          // force to the direction of head
@@ -959,7 +1011,10 @@ void SlimeTrace ()
             // we add domain to x and y in order to make sure m and n would not be negative integers
             m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
-            slime [m][n] += sr* dt ;
+            slime [m][n] += sr * dt ;
+         //   visit[m][n] += 1.0 ;      //undating visits in each time step. if you make it as uncomment, you should make it comment in the VisitsPerGrid function
+            
+            
         }
     }
 }
@@ -1208,7 +1263,7 @@ void InitialPili ()
     {
         for ( int j=0 ; j<nPili ; j++)
         {
-            bacteria[i].pili[j].lFree = rand() / (RAND_MAX + 1.0) *piliMaxLength ;
+            bacteria[i].pili[j].lFree = rand() / (RAND_MAX + 1.0) * piliMaxLength ;
             bacteria[i].pili[j].attachment = false ;
             bacteria[i].pili[j].retraction = false ;
             bacteria[i].pili[j].fx = 0.0 ;
@@ -1247,8 +1302,6 @@ void InitialPili ()
 void PiliForce ()
 {
     
-    // retraction
-    //boundry conditions in domain size and also angle
     
     double orientationBacteria ;
     double alfa ;                           // dummy name for calculating different angles
@@ -1287,7 +1340,6 @@ void PiliForce ()
             else                    //if the pili is attached
             {
                 //lambda detachment
-                //......
                 if ( rand() / (RAND_MAX + 1.0) < bacteria[i].pili[j].subDetachmentRate* dt )
                 {
                     bacteria[i].pili[j].attachment = false ;
@@ -1386,9 +1438,113 @@ double AngleOfVector (double x1,double y1,double x2,double y2)
     
 }
 //------------------------------------------------------------------------------------------------------------
+void SurfaceCoverage ()
+{
+    double percentage = 0 ;
+    
+    for (int m=0; m< nx; m++)
+    {
+        for (int n=0 ; n < ny ; n++)
+        {
+            if (slime[m][n] > s0 && surfaceCoverage[m][n] == 0 )
+            {
+                surfaceCoverage[m][n] = 1 ;
+                percentage += 1 ;
+            }
+        }
+    }
+    percentage = percentage / (nx * ny * 1.0) ;
+    coveragePercentage += percentage ;
+    
+}
 
+//------------------------------------------------------------------------------------------------------------
+void VisitsPerGrid ()
+{
+    //SlimeTrace is needed for this function, it calculate #visit in each grid
+    int m = 0 ;
+    int n = 0 ;
+  //  int newVisit[nx][ny] = {0} ;
+    
+    
+    for (int i=0; i<nbacteria; i++)
+    {
+        for (int j=0; j<2*nnode-1 ; j++)
+        {
+            // we add domain to x and y in order to make sure m and n would not be negative integers
+            m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
+            n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
+            visit[m][n] += 1 ;
+          //  newVisit[m][n] = 1 ;
+            
+        }
+    }
+  /*
+    for (int m = 0 ; m< nx ; m++)
+    {
+        for (int n = 0; n<ny; n++)
+        {
+            visit[m][n] = visit[m][n] + newVisit[m][n] ;
+        }
+        
+    }
+    */
+    
+}
 
+//------------------------------------------------------------------------------------------------------------
+int PowerLawExponent ()
+{
+//    std::vector<double> tmp;
+//  //  double A[nx*ny] = {0.0} ;
+//
+//    for (int n = 0; n<ny; n++)
+//    {
+//        for (int m = 0 ; m<nx; m++)
+//        {
+//            tmp.push_back(visit[m][n]);
+//            //A[n * nx + m] = visit[m][n] ;
+//        }
+//    }
+//    std::sort(tmp.begin(), tmp.end());
 
-
-
+    // alfa = floor (j/9)       a = ( j % 9 ) + 1       j = 9 * alfa + a -1         visit = a * 10^alfa +(Res)
+    fNoVisit = 0 ;
+    double minValue = visit[0][0] ;
+    double maxValue = visit[0][0] ;
+    int alfaMin = 0 ;
+    int alfaMax = 0 ;
+    // visit[m][n] = a * 10^alfa + (Res)
+    // alfa and a must be integer, if you want to change them to a double variable you need to make some changes in the code
+    int alfa = 0 ;
+    int a = 1 ;
+    for (int n = 0; n<ny; n++)
+    {
+        for (int m = 0 ; m<nx; m++)
+        {
+            if(visit[m][n] > maxValue && visit[m][n] != 0 ) maxValue = visit[m][n];
+            if(visit[m][n] < minValue && visit[m][n] != 0 ) minValue = visit[m][n];
+        }
+    }
+    alfaMin = max(floor (log10(minValue)) , 0.0) ;
+    alfaMax = max(floor (log10(maxValue)) , 0.0 ) ;
+    numOfClasses = (alfaMax - alfaMin +1 ) * 9 ;
+    frequency.assign(numOfClasses, 0) ;
+    
+    for (int n = 0; n<ny; n++)
+    {
+        for (int m = 0 ; m<nx; m++)
+        {   if(visit[m][n] == 0)
+            {
+                fNoVisit += 1 ;
+                continue ;
+            }
+            alfa = floor(log10(visit[m][n])) ;
+            a = floor ( visit[m][n] / pow(10, alfa) ) ;
+            frequency.at(9 * alfa + a -1 ) += 1 ;
+        }
+    }
+    
+    return alfaMin ;
+}
 
