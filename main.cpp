@@ -19,7 +19,7 @@ double initialTime = 4.0 ;
 double runTime = 1000.0 ;
 
 long  idum=(-799);
-// Inverse function is off inside the InverseTime
+// Inverse function is on inside the InverseTime
 // Function: WriteInFile, RunMode ,
 
 void Myxo () ;
@@ -1041,7 +1041,7 @@ void ReversalTime()
         if (bacteria[i].reversalTime >= reversalPeriod )
         {
             bacteria[i].reversalTime -= reversalPeriod ;
-     //       Reverse(i) ;
+            Reverse(i) ;
         }
         bacteria[i].reversalTime += dt ;
     }
