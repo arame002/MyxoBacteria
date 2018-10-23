@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include "ranum2.h"
 #include <fstream>
-//#include <algorithm>
+#include <algorithm>
 #include <vector>
 using namespace std ;
 
@@ -59,7 +59,7 @@ void VisitsPerGrid () ;
 int PowerLawExponent () ;
 //-----------------------------------------------------------------------------------------------------
 //Bacteria properties
-double length = 5.0 ;
+double length = 0.003 ;
 double B = 0.5 ;                      // bending constant
 double tetta0=3.1415 ;               // prefered angle, Pi
 double K =  1.0 ;                      // linear spring constant (stiffness)
@@ -198,12 +198,9 @@ int main ()
     //-----------------------------------------------------------------------------------------------------
     ofstream ProteinLevelFile ;
     ProteinLevelFile.open("ProteinLevelFile.txt") ;
-    ofstream NumberOfVisits ;
-    NumberOfVisits.open("NumberOfVisits.txt") ;
     ofstream FrequencyOfVisit ;
     FrequencyOfVisit.open("FrequncyOfVisit.txt") ;
     
-    //   cout<<x0<<endl ;
     cout<<"program is running"<<endl  ;
     double nt=runTime/dt + initialTime/initialStep ;                   //total number of steps
     nt =static_cast<int>(nt) ;
@@ -212,8 +209,6 @@ int main ()
     //    int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
     int inverseDt =static_cast<int>((nt-initialNt)/(runTime)) ;              // used for visualization(ParaView)
     
-    
-    //  int  revnt = static_cast<int>(reversalPeriod/ dt) ;   // used to call the old version of Reverse , Reversing all bacteria at the same time
    // Myxo() ;
     Initialization() ;
     ljNodesPosition() ;
@@ -241,7 +236,7 @@ int main ()
             AllNodes() ;
             Spring () ;
             Bending() ;
-            u_lj() ;
+      //      u_lj() ;
       //      RandomForce() ;
             /*
              if (l%inverseInitialStep==0)
@@ -259,17 +254,20 @@ int main ()
             AllNodes() ;
             Spring () ;
             Bending() ;
-            u_lj() ;
-        //    RandomForce() ;
-            Motor () ;
-            SlimeTrace() ;
-            Connection() ;
-            ProteinExchange() ;
+      //      u_lj() ;
+            RandomForce() ;
+       //     Motor () ;
+       //     SlimeTrace() ;
+        //    Connection() ;
+        //    ProteinExchange() ;
           //  PiliForce() ;
             
             
             if (l%inverseDt==0)
             {
+                string NumberOfVisits = "NumberOfVisits"+ to_string(index1)+ ".txt" ;
+                ofstream NumberOfVisit;
+                NumberOfVisit.open(NumberOfVisits.c_str());
                 SurfaceCoverage() ;
                 VisitsPerGrid() ;
                 int alfaMin = PowerLawExponent() ;
@@ -278,17 +276,19 @@ int main ()
                 {
                     for (int n=0 ; n < ny ; n++)
                     {
-                        NumberOfVisits<< visit[m][n]<<'\t' ;
+                        NumberOfVisit<< visit[m][n]<<'\t' ;
                     }
-                    NumberOfVisits<<endl ;
+                    NumberOfVisit<<endl ;
                 }
-                NumberOfVisits<<endl<<endl ;
+                NumberOfVisit<<endl<<endl ;
+                NumberOfVisit.close() ;
                 
                 for (int i=0; i<nbacteria; i++)
                 {
                     ProteinLevelFile<<bacteria[i].protein<<"," ;
                 }
                 ProteinLevelFile<< endl<<endl ;
+                FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
                 FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
                 FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
                 FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
@@ -332,14 +332,14 @@ void PositionUpdating (double t)
             totalForceX += bacteria[i].nodes[j].fljx ;
             totalForceX += bacteria[i].nodes[j].fMotorx ;
             bacteria[i].nodes[j].x += t * totalForceX * etaInverse ;
-        //  bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+          bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
             
             totalForceY = bacteria[i].nodes[j].fSpringy ;       // it is not += because the old value is related to another node
             totalForceY += bacteria[i].nodes[j].fBendingy ;
             totalForceY += bacteria[i].nodes[j].fljy ;
             totalForceY += bacteria[i].nodes[j].fMotory ;
             bacteria[i].nodes[j].y += t * totalForceY * etaInverse ;
-            //  bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+            bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
             
             
             
@@ -755,7 +755,6 @@ void ProteinExchange ()
     
 }
 
-
 //-----------------------------------------------------------------------------------------------------
 void NodeProtein ()
 {
@@ -943,7 +942,6 @@ void ParaView ()
     ECMOut.close();
 }
 
-
 //-----------------------------------------------------------------------------------------------------
 
 void ParaView2 ()
@@ -1013,7 +1011,6 @@ void SlimeTrace ()
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
             slime [m][n] += sr * dt ;
          //   visit[m][n] += 1.0 ;      //undating visits in each time step. if you make it as uncomment, you should make it comment in the VisitsPerGrid function
-            
             
         }
     }
@@ -1237,7 +1234,6 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
     return  sqrt(bacteria[i].fSTFx * bacteria[i].fSTFx + bacteria[i].fSTFy * bacteria[i].fSTFy) ;
 }
 
-
 //-----------------------------------------------------------------------------------------------------
 
 void Myxo ()
@@ -1270,10 +1266,6 @@ void InitialPili ()
             bacteria[i].pili[j].fy = 0.0 ;
             bacteria[i].pili[j].F = 0.0 ;
             
-            
-            
-            /*
-            
             if(rand() / (RAND_MAX + 1.0) < 0.5 )
             {
                 bacteria[i].pili[j].retraction = true ;
@@ -1291,12 +1283,10 @@ void InitialPili ()
             {
                 bacteria[i].pili[j].attachment = false ;
             }
-             */
+             
         }
     }
 }
-
-
 
 //-----------------------------------------------------------------------------------------------------
 void PiliForce ()
@@ -1364,7 +1354,6 @@ void PiliForce ()
                         
                         bacteria[i].pili[j].fy = bacteria[i].pili[j].F * sin(alfa*tetta0/180.0)  ;
                         
-                        
                     }
                     
                     else
@@ -1407,8 +1396,6 @@ void PiliForce ()
                     bacteria[i].pili[j].fx = 0.0 ;
                     bacteria[i].pili[j].fy = 0.0 ;
                     bacteria[i].pili[j].F  = 0.0 ;
-                    
-                    
                 }
             }
             else
@@ -1420,10 +1407,8 @@ void PiliForce ()
                 }
             }
             averageLengthFree += bacteria[i].pili[j].lFree / (nbacteria * nPili) ;
-            
         }
     }
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1495,29 +1480,16 @@ void VisitsPerGrid ()
 //------------------------------------------------------------------------------------------------------------
 int PowerLawExponent ()
 {
-//    std::vector<double> tmp;
-//  //  double A[nx*ny] = {0.0} ;
-//
-//    for (int n = 0; n<ny; n++)
-//    {
-//        for (int m = 0 ; m<nx; m++)
-//        {
-//            tmp.push_back(visit[m][n]);
-//            //A[n * nx + m] = visit[m][n] ;
-//        }
-//    }
-//    std::sort(tmp.begin(), tmp.end());
-
-    // alfa = floor (j/9)       a = ( j % 9 ) + 1       j = 9 * alfa + a -1         visit = a * 10^alfa +(Res)
+    double discrete = 1.5 ;
+    double log10discrete = log10(discrete) ;
     fNoVisit = 0 ;
-    double minValue = visit[0][0] ;
-    double maxValue = visit[0][0] ;
+    int minValue = visit[0][0] ;
+    int maxValue = visit[0][0] ;
     int alfaMin = 0 ;
     int alfaMax = 0 ;
-    // visit[m][n] = a * 10^alfa + (Res)
+    
     // alfa and a must be integer, if you want to change them to a double variable you need to make some changes in the code
     int alfa = 0 ;
-    int a = 1 ;
     for (int n = 0; n<ny; n++)
     {
         for (int m = 0 ; m<nx; m++)
@@ -1526,9 +1498,9 @@ int PowerLawExponent ()
             if(visit[m][n] < minValue ) minValue = visit[m][n];
         }
     }
-    alfaMin = max(floor (log10(minValue)) , 0.0) ;
-    alfaMax = max(floor (log10(maxValue)) , 0.0 ) ;
-    numOfClasses = (alfaMax - alfaMin +1 ) * 9 ;
+    alfaMin = max(floor (log10(minValue)/log10discrete) , 0.0 ) ;
+    alfaMax = max(floor (log10(maxValue)/log10discrete) , 0.0 );
+    numOfClasses = (alfaMax - alfaMin +1 )  ;
     frequency.assign(numOfClasses, 0) ;
     
     for (int n = 0; n<ny; n++)
@@ -1539,10 +1511,17 @@ int PowerLawExponent ()
                 fNoVisit += 1 ;
                 continue ;
             }
-            alfa = floor(log10(visit[m][n])) ;
-            a = floor ( visit[m][n] / pow(10, alfa) ) ;
-            frequency.at(9 * alfa + a -1 ) += 1 ;
+            alfa = floor(log10(visit[m][n])/log10discrete) ;
+            frequency.at(alfa ) += 1 ;
         }
+    }
+    double normalization = 1 ;
+    for (int i = 0 ; i<numOfClasses ; i++)
+    {
+        normalization = floor(pow(discrete, i+1)) - ceil(pow(discrete, i)) + 1 ;    // it counts integers between this two numbers
+        
+        if(normalization == 0 )    normalization = 1 ;  // for that i, frequesncy is zero. normalized or unnormalized .
+        frequency.at(i) = frequency.at(i) / normalization ;
     }
     
     return alfaMin ;
