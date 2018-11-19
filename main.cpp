@@ -59,7 +59,7 @@ void VisitsPerGrid () ;
 int PowerLawExponent () ;
 //-----------------------------------------------------------------------------------------------------
 //Bacteria properties
-double length = 0.003 ;
+double length = 5 ;
 double B = 0.5 ;                      // bending constant
 double tetta0=3.1415 ;               // prefered angle, Pi
 double K =  1.0 ;                      // linear spring constant (stiffness)
@@ -256,10 +256,10 @@ int main ()
             Bending() ;
       //      u_lj() ;
             RandomForce() ;
-       //     Motor () ;
-       //     SlimeTrace() ;
-        //    Connection() ;
-        //    ProteinExchange() ;
+            Motor () ;
+            SlimeTrace() ;
+            Connection() ;
+            ProteinExchange() ;
           //  PiliForce() ;
             
             
@@ -329,14 +329,14 @@ void PositionUpdating (double t)
             etaInverse = diffusion / (kblz * temp) ;  
             totalForceX = bacteria[i].nodes[j].fSpringx ;       // it is not += because the old value is related to another node
             totalForceX += bacteria[i].nodes[j].fBendingx ;
-            totalForceX += bacteria[i].nodes[j].fljx ;
+      //     totalForceX += bacteria[i].nodes[j].fljx ;
             totalForceX += bacteria[i].nodes[j].fMotorx ;
             bacteria[i].nodes[j].x += t * totalForceX * etaInverse ;
           bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
             
             totalForceY = bacteria[i].nodes[j].fSpringy ;       // it is not += because the old value is related to another node
             totalForceY += bacteria[i].nodes[j].fBendingy ;
-            totalForceY += bacteria[i].nodes[j].fljy ;
+       //     totalForceY += bacteria[i].nodes[j].fljy ;
             totalForceY += bacteria[i].nodes[j].fMotory ;
             bacteria[i].nodes[j].y += t * totalForceY * etaInverse ;
             bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
