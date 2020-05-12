@@ -1,24 +1,10 @@
 
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <cstdlib>
-#include "ranum2.h"
-#include <fstream>
-#include <algorithm>
-#include <vector>
-using namespace std ;
 
-#define nnode 7                                                // need to be an odd number
-#define nbacteria 200                                            // 2* n^2
-#define points nbacteria*nnode
-#define domainx  100.0
-#define domainy  100.0
-#define nPili   1
-double initialTime = 4.0 ;
-double runTime = 1000.0 ;
+#include "Bacteria.h"
 
 long  idum=(-799);
+
+
 // Inverse function is on inside the InverseTime
 // Function: WriteInFile, RunMode ,
 
@@ -57,6 +43,11 @@ double AngleOfVector (double x1, double y1 , double x2 , double y2 ) ;      // (
 void SurfaceCoverage () ;
 void VisitsPerGrid () ;
 int PowerLawExponent () ;
+
+void TurnOrientation () ;
+double Cal_OrientationBacteria (int i) ;
+
+
 //-----------------------------------------------------------------------------------------------------
 //Bacteria properties
 double length = 5 ;
@@ -66,7 +57,8 @@ double K =  1.0 ;                      // linear spring constant (stiffness)
 double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
 double fmotor = 0.1 ;                           //   Ft/(N-1)
 double Rp = 0.3 ;                               // protein exchange rate
-double reversalPeriod = 1000.0 ;
+double reversalPeriod = 300.0 ;
+double turnPeriod = 50.0 ;
 
 //-----------------------------------------------------------------------------------------------------
 //domain and medium properties
@@ -116,59 +108,9 @@ double initialStep = 0.0001 ;
 int index1 = 0 ;                                     // needed for ParaView
 
 //-----------------------------------------------------------------------------------------------------
-class node
-{   public:
-    double x ;
-    double y ;
-    double fSpringx ;
-    double fSpringy ;
-    double fBendingx ;
-    double fBendingy ;
-    double fljx ;
-    double fljy ;
-    double xdev ;
-    double ydev ;
-    double fMotorx ;
-    double fMotory ;
-    double protein ;
 
-    
-};
-class pilus
-{   public:
-    double lFree ;                                // pili free length
-    double retractionRate ;
-    double vRet ;                                // retraction rate for connected pili
-    double subAttachmentRate = 1 ;
-    double subDetachmentRate = 0.1 ;
-    double lContour ;
-    double F ;                  //magnitude of the force
-    double fx ;
-    double fy ;
-    double xEnd ;                   //x component of the end of the pili
-    double yEnd ;                   //y component of the end of the pili
-    bool piliSubs = true ;                 // true for pili-substrate connection and false for pili-pili connection
-                                        // we change this parameter for simulation
-    bool attachment ;
-    bool retraction ;
-    
-};
-
-class bacterium
-{   public:
-    node nodes[nnode];
-    node ljnodes[nnode-1] ;
-    node allnodes[2*nnode-1] ;
-    double connection [nbacteria] ;
-    double protein ;
-    node duplicate[nnode] ;
-    bool copy ;
-    double reversalTime ;
-    double fSTFx ;
-    double fSTFy ;
-    pilus pili[nPili] ;
-};
-
+double initialTime = 4.0 ;
+double runTime = 20000.0 ;
 bacterium bacteria[nbacteria];
 
 int main ()
@@ -209,8 +151,8 @@ int main ()
     //    int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
     int inverseDt =static_cast<int>((nt-initialNt)/(runTime)) ;              // used for visualization(ParaView)
     
-   // Myxo() ;
-    Initialization() ;
+    Myxo() ;
+    // Initialization() ;
     ljNodesPosition() ;
     InitialProtein() ;
     InitialReversalTime() ;
@@ -236,8 +178,8 @@ int main ()
             AllNodes() ;
             Spring () ;
             Bending() ;
-      //      u_lj() ;
-      //      RandomForce() ;
+            //      u_lj() ;
+            //      RandomForce() ;
             /*
              if (l%inverseInitialStep==0)
              {
@@ -250,61 +192,63 @@ int main ()
         }
         else
         {
-        //   ReversalTime() ;
+            ReversalTime() ;
             AllNodes() ;
             Spring () ;
             Bending() ;
-      //      u_lj() ;
-            RandomForce() ;
+            u_lj() ;
+            //  RandomForce() ;
             Motor () ;
-            SlimeTrace() ;
-            Connection() ;
-            ProteinExchange() ;
-          //  PiliForce() ;
+            TurnOrientation() ;
+            //  SlimeTrace() ;
+            //  Connection() ;
+            //  ProteinExchange() ;
+            //  PiliForce() ;
             
             
             if (l%inverseDt==0)
             {
-                string NumberOfVisits = "NumberOfVisits"+ to_string(index1)+ ".txt" ;
-                ofstream NumberOfVisit;
-                NumberOfVisit.open(NumberOfVisits.c_str());
-                SurfaceCoverage() ;
-                VisitsPerGrid() ;
-                int alfaMin = PowerLawExponent() ;
-                
-                for (int m=0; m< nx; m++)
-                {
-                    for (int n=0 ; n < ny ; n++)
-                    {
-                        NumberOfVisit<< visit[m][n]<<'\t' ;
-                    }
-                    NumberOfVisit<<endl ;
-                }
-                NumberOfVisit<<endl<<endl ;
-                NumberOfVisit.close() ;
-                
-                for (int i=0; i<nbacteria; i++)
-                {
-                    ProteinLevelFile<<bacteria[i].protein<<"," ;
-                }
-                ProteinLevelFile<< endl<<endl ;
-                FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
-                FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
-                FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
-                FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
-                FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
-                
-                for (int i=0 ; i<numOfClasses ; i++)
-                {
-                    FrequencyOfVisit<< frequency[i]<<'\t' ;
-                }
-                FrequencyOfVisit<<endl<<endl ;
-                
+                /*
+                 string NumberOfVisits = "NumberOfVisits"+ to_string(index1)+ ".txt" ;
+                 ofstream NumberOfVisit;
+                 NumberOfVisit.open(NumberOfVisits.c_str());
+                 SurfaceCoverage() ;
+                 VisitsPerGrid() ;
+                 int alfaMin = PowerLawExponent() ;
+                 
+                 for (int m=0; m< nx; m++)
+                 {
+                 for (int n=0 ; n < ny ; n++)
+                 {
+                 NumberOfVisit<< visit[m][n]<<'\t' ;
+                 }
+                 NumberOfVisit<<endl ;
+                 }
+                 NumberOfVisit<<endl<<endl ;
+                 NumberOfVisit.close() ;
+                 
+                 for (int i=0; i<nbacteria; i++)
+                 {
+                 ProteinLevelFile<<bacteria[i].protein<<"," ;
+                 }
+                 ProteinLevelFile<< endl<<endl ;
+                 FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
+                 FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
+                 FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
+                 FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
+                 FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
+                 
+                 for (int i=0 ; i<numOfClasses ; i++)
+                 {
+                 FrequencyOfVisit<< frequency[i]<<'\t' ;
+                 }
+                 FrequencyOfVisit<<endl<<endl ;
+                 */
                 ParaView ()  ;
                 ParaView2() ;
-             cout<<(l-initialNt)/inverseDt<<endl ;
-             //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
-            //    cout << coveragePercentage <<endl ;
+                cout<<(l-initialNt)/inverseDt<<endl ;
+                //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
+                //    cout << coveragePercentage <<endl ;
             }
             PositionUpdating(dt) ;
         }
@@ -326,17 +270,17 @@ void PositionUpdating (double t)
     {
         for(int j=0 ; j<nnode; j++)
         {   Diffusion(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
-            etaInverse = diffusion / (kblz * temp) ;  
+            etaInverse = diffusion / (kblz * temp) ;
             totalForceX = bacteria[i].nodes[j].fSpringx ;       // it is not += because the old value is related to another node
             totalForceX += bacteria[i].nodes[j].fBendingx ;
-      //     totalForceX += bacteria[i].nodes[j].fljx ;
+            //     totalForceX += bacteria[i].nodes[j].fljx ;
             totalForceX += bacteria[i].nodes[j].fMotorx ;
             bacteria[i].nodes[j].x += t * totalForceX * etaInverse ;
-          bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+            bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
             
             totalForceY = bacteria[i].nodes[j].fSpringy ;       // it is not += because the old value is related to another node
             totalForceY += bacteria[i].nodes[j].fBendingy ;
-       //     totalForceY += bacteria[i].nodes[j].fljy ;
+            //     totalForceY += bacteria[i].nodes[j].fljy ;
             totalForceY += bacteria[i].nodes[j].fMotory ;
             bacteria[i].nodes[j].y += t * totalForceY * etaInverse ;
             bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
@@ -344,7 +288,7 @@ void PositionUpdating (double t)
             
             
             // F pili
-       
+            
             if (j==0)
             {
                 for (int m=0 ; m<nPili ; m++)
@@ -353,7 +297,7 @@ void PositionUpdating (double t)
                     bacteria[i].nodes[j].y += t * (bacteria[i].pili[m].fy) * etaInverse ;
                 }
             }
-        
+            
         }
     }
     ljNodesPosition() ;
@@ -564,7 +508,7 @@ void Motor()
         if(j==0)
         {
             double fs = 0.0 ;
-            fs = SlimeTrailFollowing(i, length/2) ;
+            // fs = SlimeTrailFollowing(i, length/2) ;
             
             
             bacteria[i].nodes[j].fMotorx =  (fmotor - fs ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Distance(i,j,i,j+1) ;                          // force to the direction of head
@@ -585,6 +529,11 @@ void Motor()
 //-----------------------------------------------------------------------------------------------------
 void Reverse (int i)
 {
+    bacteria[i].turnStatus = true ;
+    bacteria[i].turnTime = 0.0 ;
+    //  bacteria[i].turnAngle =(2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * (3.1415) ;    //uniform distribution
+    bacteria[i].turnAngle = gasdev(&idum) * (3.1415) ;                  //guassian distribution
+    //   bacteria[i].turnAngle = 3.1415/3.0 ;
     int start = 0;
     int end = nnode-1 ;
     node temp  ;
@@ -917,7 +866,7 @@ void ParaView ()
     }
     ECMOut<< endl;
     ECMOut<< "CELLS " << points-1<< " " << 3 *(points-1)<< endl;
-   
+    
     for (uint i = 0; i < (points-1); i++)           //number of connections per node
     {
         
@@ -925,7 +874,7 @@ void ParaView ()
         << i+1 << endl;
         
     }
-
+    
     ECMOut << "CELL_TYPES " << points-1<< endl;             //connection type
     for (uint i = 0; i < points-1; i++) {
         ECMOut << "3" << endl;
@@ -985,7 +934,7 @@ void ParaView2 ()
             }
         }
     }
-                
+    
     index1++ ;
 }
 
@@ -1010,7 +959,7 @@ void SlimeTrace ()
             m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
             slime [m][n] += sr * dt ;
-         //   visit[m][n] += 1.0 ;      //undating visits in each time step. if you make it as uncomment, you should make it comment in the VisitsPerGrid function
+            //   visit[m][n] += 1.0 ;      //undating visits in each time step. if you make it as uncomment, you should make it comment in the VisitsPerGrid function
             
         }
     }
@@ -1018,9 +967,9 @@ void SlimeTrace ()
 //-----------------------------------------------------------------------------------------------------
 void Diffusion (double x , double y)
 {
- //int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
-//  int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
-//  diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+    //int m = (static_cast<int> (round ( fmod (x + domainx , domainx) / dx ) ) ) % nx ;
+    //  int n = (static_cast<int> (round ( fmod (y + domainy , domainy) / dy ) ) ) % ny ;
+    //  diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
     diffusion = kblz * temp/ eta1 ;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -1139,10 +1088,10 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
                             gridWithSlime[3] += 1 ;
                         }
                     }
-
+                    
                     else if (gridAngleInSearchArea > 54 && gridAngleInSearchArea <= 90)
                     {
-                      
+                        
                         slimeRegions[4] += slime[gridX][gridY] ;
                         gridInRegions[4] += 1 ;
                         if ( slime[gridX][gridY] - s0 >= 0.0000001)
@@ -1154,7 +1103,7 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
                     totalSlimeInSearchArea += slime[gridX][gridY] ;
                     
                 }
-            
+                
             }
             
         }
@@ -1168,33 +1117,33 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
         
     }
     /*
-    else
-    {   double mostFilledRegion= 0.0 ;
-        for (int i=0 ; i < 5 ; i++)
-        {
-            if (( gridWithSlime[i] / gridInRegions[i] ) > 0.8 )
-            {
-                if ( abs(i-2) < abs(region-2) )             // lower change in angle
-                {
-                mostFilledRegion = slimeRegions[i] ;
-                region = i ;
-                }
-                else if ( ( abs(i-2) == abs(region-2) ) && rand() % 2 ==0 )     //choosing between two randomly
-                {
-                        mostFilledRegion = slimeRegions[i] ;
-                        region = i ;
-                }
-            }
-        }
-        if ( region ==6) region = 2 ;                       // re-initialization after checking the conditions
-        alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
-        // using alfa(radiant) for direction of the force
-        // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
-        
-        bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
-        bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
-        // (S/S0) is not included yet
-    }
+     else
+     {   double mostFilledRegion= 0.0 ;
+     for (int i=0 ; i < 5 ; i++)
+     {
+     if (( gridWithSlime[i] / gridInRegions[i] ) > 0.8 )
+     {
+     if ( abs(i-2) < abs(region-2) )             // lower change in angle
+     {
+     mostFilledRegion = slimeRegions[i] ;
+     region = i ;
+     }
+     else if ( ( abs(i-2) == abs(region-2) ) && rand() % 2 ==0 )     //choosing between two randomly
+     {
+     mostFilledRegion = slimeRegions[i] ;
+     region = i ;
+     }
+     }
+     }
+     if ( region ==6) region = 2 ;                       // re-initialization after checking the conditions
+     alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
+     // using alfa(radiant) for direction of the force
+     // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
+     
+     bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
+     bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+     // (S/S0) is not included yet
+     }
      */
     else
     {   double maxSlimeRegion= 0.0 ;
@@ -1202,8 +1151,8 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
         {
             if (slimeRegions[i] > maxSlimeRegion )
             {
-                    maxSlimeRegion = slimeRegions[i] ;
-                    region = i ;
+                maxSlimeRegion = slimeRegions[i] ;
+                region = i ;
             }
         }
         for (int i=0 ; i<5 ; i++)
@@ -1214,13 +1163,13 @@ double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of 
                 {
                     region = i ;
                 }
-          
-       //       else if ( abs(i-2) == abs(region-2) && rand() % 2 ==0  )
+                
+                //       else if ( abs(i-2) == abs(region-2) && rand() % 2 ==0  )
                 else if ( abs(i-2) == abs(region-2) && slimeRegions[i] > slimeRegions[region])
                 {
                     region = i ;
                 }
-
+                
             }
         }
         alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
@@ -1242,11 +1191,11 @@ void Myxo ()
     {
         for ( int j=0 ; j<nnode ; j++)
         {
-       //     bacteria[i].nodes[j].x = i* nnode + j ;
-         //   bacteria[i].nodes[j].y = 2*i*nnode + 2* j  ;
+            //     bacteria[i].nodes[j].x = i* nnode + j ;
+            //   bacteria[i].nodes[j].y = 2*i*nnode + 2* j  ;
             
-            bacteria[i].nodes[j].x = 5 + j ;
-            bacteria[i].nodes[j].y = 10*(i+1) ;
+            bacteria[i].nodes[j].x = 50.0 + j ;
+            bacteria[i].nodes[j].y = 50.0 + j ;
             
         }
     }
@@ -1283,7 +1232,7 @@ void InitialPili ()
             {
                 bacteria[i].pili[j].attachment = false ;
             }
-             
+            
         }
     }
 }
@@ -1311,7 +1260,7 @@ void PiliForce ()
                     bacteria[i].pili[j].attachment = true ;
                     bacteria[i].pili[j].retraction = true ;
                     nAttachedPili += 1 ;
-            //now it is attached, then we calculate the end point
+                    //now it is attached, then we calculate the end point
                     
                     if (bacteria[i].pili[j].piliSubs)       //pili-substrate interaction
                     {
@@ -1449,7 +1398,7 @@ void VisitsPerGrid ()
     //SlimeTrace is needed for this function, it calculate #visit in each grid
     int m = 0 ;
     int n = 0 ;
-  //  int newVisit[nx][ny] = {0} ;
+    //  int newVisit[nx][ny] = {0} ;
     
     
     for (int i=0; i<nbacteria; i++)
@@ -1460,20 +1409,20 @@ void VisitsPerGrid ()
             m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
             visit[m][n] += 1 ;
-          //  newVisit[m][n] = 1 ;
+            //  newVisit[m][n] = 1 ;
             
         }
     }
-  /*
-    for (int m = 0 ; m< nx ; m++)
-    {
-        for (int n = 0; n<ny; n++)
-        {
-            visit[m][n] = visit[m][n] + newVisit[m][n] ;
-        }
-        
-    }
-    */
+    /*
+     for (int m = 0 ; m< nx ; m++)
+     {
+     for (int n = 0; n<ny; n++)
+     {
+     visit[m][n] = visit[m][n] + newVisit[m][n] ;
+     }
+     
+     }
+     */
     
 }
 
@@ -1507,10 +1456,10 @@ int PowerLawExponent ()
     {
         for (int m = 0 ; m<nx; m++)
         {   if(visit[m][n] == 0)
-            {
-                fNoVisit += 1 ;
-                continue ;
-            }
+        {
+            fNoVisit += 1 ;
+            continue ;
+        }
             alfa = floor(log10(visit[m][n])/log10discrete) ;
             frequency.at(alfa ) += 1 ;
         }
@@ -1527,3 +1476,41 @@ int PowerLawExponent ()
     return alfaMin ;
 }
 
+
+void TurnOrientation ()
+{
+    for (int i=0; i<nbacteria; i++)
+    {
+        if (bacteria[i].turnStatus)
+        {
+            // bacteria[i].turnAngle = 0.78 ;
+            double fTotal =sqrt(bacteria[i].nodes[0].fMotorx * bacteria[i].nodes[0].fMotorx +
+                                bacteria[i].nodes[0].fMotory * bacteria[i].nodes[0].fMotory) ;
+            double orientation = Cal_OrientationBacteria(i) ;
+            bacteria[i].nodes[0].fMotorx = fTotal * cos(bacteria[i].turnAngle + orientation ) ;
+            bacteria[i].nodes[0].fMotory = fTotal * sin(bacteria[i].turnAngle + orientation ) ;
+            bacteria[i].turnTime += dt ;
+            
+            if (bacteria[i].turnTime > turnPeriod)
+            {
+                bacteria[i].turnStatus = false ;
+                bacteria[i].turnTime = 0.0 ;
+                bacteria[i].turnAngle = 0.0 ;
+            }
+            
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+double Cal_OrientationBacteria (int i)
+
+{
+    
+    double ax = 1.0 *(bacteria[i].nodes[0].x - bacteria[i].nodes[1].x) ;
+    double ay = 1.0 *(bacteria[i].nodes[0].y - bacteria[i].nodes[1].y) ;
+    double Cos = ax/sqrt(ax*ax+ay*ay) ;
+    double orientationBacteria = acos(Cos)  ;        // orientation of the bacteria in radian
+    if(ay<0.0) orientationBacteria *= -1.0 ;
+    return orientationBacteria ;
+}
