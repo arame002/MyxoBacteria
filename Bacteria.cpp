@@ -1,10 +1,13 @@
-//
-//  Bacteria.cpp
-//  Psuedo
-//
-//  Created by Alireza Ramezani on 5/12/20.
-//  Copyright © 2020 Alireza Ramezani. All rights reserved.
-//
 
-#include <stdio.h>
-#include "Bacteria.h"
+#include "Bacteria.hpp"
+
+bacterium::bacterium ()
+{
+    nodes.resize(nnode) ;
+    ljnodes.resize(nnode-1) ;
+    allnodes.resize(2*nnode-1) ;
+    duplicate.resize(nnode) ;
+    connection.resize(nbacteria) ;
+    
+    pili.resize(nPili) ;
+}

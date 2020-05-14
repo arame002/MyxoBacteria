@@ -1,6 +1,7 @@
 
 
-#include "Bacteria.h"
+#include "Bacteria.hpp"
+#include "ranum2.h"
 
 long  idum=(-799);
 
@@ -108,10 +109,9 @@ double initialStep = 0.0001 ;
 int index1 = 0 ;                                     // needed for ParaView
 
 //-----------------------------------------------------------------------------------------------------
-
 double initialTime = 4.0 ;
 double runTime = 20000.0 ;
-bacterium bacteria[nbacteria];
+    bacterium bacteria[nbacteria];
 
 int main ()
 {
@@ -531,7 +531,7 @@ void Reverse (int i)
 {
     bacteria[i].turnStatus = true ;
     bacteria[i].turnTime = 0.0 ;
-    //  bacteria[i].turnAngle =(2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * (3.1415) ;    //uniform distribution
+  //  bacteria[i].turnAngle =(2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * (3.1415) ;    //uniform distribution
     bacteria[i].turnAngle = gasdev(&idum) * (3.1415) ;                  //guassian distribution
     //   bacteria[i].turnAngle = 3.1415/3.0 ;
     int start = 0;
