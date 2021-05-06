@@ -15,13 +15,12 @@
 
 using namespace std ;
 
-#define nnode 7                                                // need to be an odd number
-#define nbacteria 1                                            // 2* n^2
+#define nnode 5                                                // need to be an odd number
+#define nbacteria 128                                            // 2* n^2
 #define points nbacteria*nnode
 #define domainx  100.0
 #define domainy  100.0
 #define nPili   1
-
 
 
 class node
