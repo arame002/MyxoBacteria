@@ -2,7 +2,7 @@
 
 #include "TissueBacteria.hpp"
 #include "ranum2.h"
-#include "SignalCommon.hpp"
+//#include "SignalCommon.hpp"
 
 long  idum=(-799);
 
@@ -20,42 +20,42 @@ long  idum=(-799);
 //double Cos0ijk(int, int) ;
 //double u_lj () ;
 void RandomForce() ;
-void Motor () ;
-void Reverse (int i) ;                                               // inverse head and tail
+//void Motor () ;
+//void Reverse (int i) ;                                               // inverse head and tail
 void Initialization () ;
 void Initialization2 () ;
 void CircularInitialization () ;
 void PositionUpdating (double  ) ;                               // (time step)
 void ljNodesPosition () ;
-void InitialProtein () ;
-void Connection () ;
-void AllNodes () ;
-void ProteinExchange () ;
-void NodeProtein () ;
-void Duplicate () ;
-void Merge () ;
-void ParaView ( ) ;                                    // (current time, time step)
-void ParaView2 () ;
-void SlimeTrace () ;
+//void InitialProtein () ;
+//void Connection () ;
+//void AllNodes () ;
+// void ProteinExchange () ;
+// void NodeProtein () ;
+//void Duplicate () ;
+//void Merge () ;
+// void ParaView ( ) ;                                    // (current time, time step)
+ void ParaView2 () ;
+//void SlimeTrace () ;
 void Diffusion (double, double ) ;
 void InitialReversalTime () ;
-void ReversalTime() ;
-double SlimeTrailFollowing (int , double) ;
+//void ReversalTime() ;
+//double SlimeTrailFollowing (int , double) ;
 //void PiliForce () ;
 void InitialPili () ;
-double AngleOfVector (double x1, double y1 , double x2 , double y2 ) ;      // (x1,y1,x2,y2)
+//double AngleOfVector (double x1, double y1 , double x2 , double y2 ) ;      // (x1,y1,x2,y2)
 void SurfaceCoverage () ;
 void VisitsPerGrid () ;
 int PowerLawExponent () ;
 
-void TurnOrientation () ;
-double Cal_OrientationBacteria (int i) ;
-void UpdateReversalFrequency () ;
-double Cal_ChemoGradient (int i ) ;
-double Cal_ChemoGradient2 (int i) ;
-void WriteTrajectoryFile () ;
-void WriteNumberReverse () ;
-void SlimeTraceHyphae (Fungi tmpFng) ;
+//void TurnOrientation () ;
+//double Cal_OrientationBacteria (int i) ;
+//void UpdateReversalFrequency () ;
+//double Cal_ChemoGradient (int i ) ;
+//double Cal_ChemoGradient2 (int i) ;
+//void WriteTrajectoryFile () ;
+//void WriteNumberReverse () ;
+//void SlimeTraceHyphae (Fungi tmpFng) ;
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ int visit[nx][ny] ;
 vector<double> frequency ;
 int numOfClasses = 1 ;
 int fNoVisit = 0 ;
-vector<vector<double> > gridInMain ;
+//vector<vector<double> > gridInMain ;
 
 //-----------------------------------------------------------------------------------------------------
 //slime properties
@@ -168,7 +168,7 @@ int main ()
     Initialization2() ;
     //CircularInitialization() ;
     ljNodesPosition() ;
-    InitialProtein() ;
+    tissueBacteria.InitialProtein() ;
     InitialReversalTime() ;
     InitialPili () ;
     for (int i=0; i<nbacteria; i++)
@@ -185,14 +185,14 @@ int main ()
     vector<HyphaeSegment> hyphaeSegments_main = fungi.hyphaeSegments ;
     
     vector<vector<double> > pointSources = fungi.tips ;
-    gridInMain = tissueBacteria.Cal_Diffusion2D(0, 100, 0, 100,fungi.tips) ;
-    SlimeTraceHyphae(fungi) ;
+    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0, 100, 0, 100,fungi.tips) ;
+    tissueBacteria.SlimeTraceHyphae(fungi) ;
     for (int l=0; l< (nt+1); l++)
     {
         if (l < initialNt)
         {
             
-            AllNodes() ;
+            tissueBacteria.AllNodes() ;
             tissueBacteria.Spring () ;
             tissueBacteria.Bending() ;
             //      u_lj() ;
@@ -211,14 +211,14 @@ int main ()
         
         else
         {
-            ReversalTime() ;
-            AllNodes() ;
+            tissueBacteria.ReversalTime() ;
+            tissueBacteria.AllNodes() ;
             tissueBacteria.Spring () ;
             tissueBacteria.Bending() ;
           //  u_lj() ;
             //  RandomForce() ;
-            Motor () ;
-            TurnOrientation() ;
+            tissueBacteria.Motor () ;
+            tissueBacteria.TurnOrientation() ;
             //  SlimeTrace() ;
             //  Connection() ;
             //  ProteinExchange() ;
@@ -263,9 +263,9 @@ int main ()
                  }
                  FrequencyOfVisit<<endl<<endl ;
                  */
-                ParaView ()  ;
+                tissueBacteria.ParaView ()  ;
                 ParaView2() ;
-                WriteTrajectoryFile() ;
+               tissueBacteria.WriteTrajectoryFile() ;
                 cout<<(l-initialNt)/inverseDt<<endl ;
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 //    cout << coveragePercentage <<endl ;
@@ -276,7 +276,7 @@ int main ()
         
     }
     
-    WriteNumberReverse() ;
+   tissueBacteria.WriteNumberReverse() ;
     
     cout<<"No Bug"<<endl ;
     return 0 ;
@@ -459,6 +459,7 @@ void RandomForce()
 }
  
 //-----------------------------------------------------------------------------------------------------
+/*
 void Motor()
 {
     for (int i=0; i<nbacteria; i++)
@@ -525,7 +526,9 @@ void Motor()
         
     }
 }
+ */
 //-----------------------------------------------------------------------------------------------------
+/*
 void Reverse (int i)
 {
    // bacteria[i].directionOfMotion = ! bacteria[i].directionOfMotion ;
@@ -565,6 +568,7 @@ void Reverse (int i)
     }
     
 }
+ */
 //-----------------------------------------------------------------------------------------------------
 void Initialization ()
 {
@@ -695,22 +699,22 @@ void ljNodesPosition ()
     }
 }
 //-----------------------------------------------------------------------------------------------------
-void InitialProtein ()
-{
-    double allProtein = 0.0 ;
-    for (int i=0; i<nbacteria; i++)
-    {
-        bacteria[i].protein = rand() / (RAND_MAX + 1.0);
-        allProtein += bacteria[i].protein ;
-        
-    }
-    cout<<"Total amount of Protein is "<< allProtein<<endl ;
-    for (int i=0 ; i<nbacteria; i++)
-    {
-        bacteria[i].protein = bacteria[i].protein/allProtein ;      // normalized protein
-    }
-    
-}
+//void InitialProtein ()
+//{
+//    double allProtein = 0.0 ;
+//    for (int i=0; i<nbacteria; i++)
+//    {
+//        bacteria[i].protein = rand() / (RAND_MAX + 1.0);
+//        allProtein += bacteria[i].protein ;
+//
+//    }
+//    cout<<"Total amount of Protein is "<< allProtein<<endl ;
+//    for (int i=0 ; i<nbacteria; i++)
+//    {
+//        bacteria[i].protein = bacteria[i].protein/allProtein ;      // normalized protein
+//    }
+//
+//}
 //-----------------------------------------------------------------------------------------------------
 /*
 void Connection ()
@@ -758,6 +762,7 @@ void Connection ()
 }
 */
 //-----------------------------------------------------------------------------------------------------
+/*
 void AllNodes ()
 {
     for (int i=0; i<nbacteria; i++)
@@ -773,8 +778,9 @@ void AllNodes ()
         }
     }
 }
-
+*/
 //-----------------------------------------------------------------------------------------------------
+/*
 void ProteinExchange ()
 {
     for (int i=0; i<nbacteria-1; i++)
@@ -791,9 +797,10 @@ void ProteinExchange ()
     }
     
 }
-
+*/
 //-----------------------------------------------------------------------------------------------------
-void NodeProtein ()
+/*
+ void NodeProtein ()
 {
     for (int i=0 ; i<nbacteria; i++)
     {
@@ -803,8 +810,9 @@ void NodeProtein ()
         }
     }
 }
-
+*/
 //-----------------------------------------------------------------------------------------------------
+/*
 void Duplicate()
 {
     for (int i=0; i<nbacteria; i++)
@@ -905,6 +913,7 @@ void Merge ()
         }
     }
 }
+*/
 //-----------------------------------------------------------------------------------------------------
 /*
 double MinDistance (double x1 , double y1 ,double x2 , double y2)
@@ -929,7 +938,7 @@ double MinDistance (double x1 , double y1 ,double x2 , double y2)
 }
 */
 //-----------------------------------------------------------------------------------------------------
-
+/*
 void ParaView ()
 {
     NodeProtein() ;
@@ -980,7 +989,7 @@ void ParaView ()
     ECMOut.close();
     //index1++ ;
 }
-
+*/
 //-----------------------------------------------------------------------------------------------------
 
 void ParaView2 ()
@@ -1029,6 +1038,7 @@ void ParaView2 ()
 }
 
 //-----------------------------------------------------------------------------------------------------
+/*
 void SlimeTrace ()
 {
     int m = 0 ;
@@ -1054,6 +1064,7 @@ void SlimeTrace ()
         }
     }
 }
+ */
 //-----------------------------------------------------------------------------------------------------
 void Diffusion (double x , double y)
 {
@@ -1082,6 +1093,7 @@ void InitialReversalTime ()
     
 }
 //-----------------------------------------------------------------------------------------------------
+/*
 void ReversalTime()
 {
     for (int i=0; i<nbacteria; i++)
@@ -1103,193 +1115,194 @@ void ReversalTime()
         bacteria[i].reversalTime += dt ;
     }
 }
+ */
 //-----------------------------------------------------------------------------------------------------
-double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of the search area
-{
-    int m=0   ;
-    int n=0   ;
-    int gridX ;
-    int gridY ;
-    double deltax ;
-    double deltay ;
-    double r ;
-    int region = 2 ;
-    double totalSlimeInSearchArea = 0.0 ;
-    double gridInRegions [5] = { } ;                // number of grids in each region
-    double gridWithSlime [5] = { } ;                   // number of grids containing slime
-    double slimeRegions[5] = { }   ;                // the amount of slime in each region
-    /*
-     0:  area between 0 and 36
-     1:  area between 36 and 72
-     2:  area between 72 and 108
-     3:  area between 108 and 144
-     4:  area between 144 and 180
-     */
-    
-    double ax = bacteria[i].nodes[0].x - bacteria[i].nodes[1].x ;
-    double ay = bacteria[i].nodes[0].y - bacteria[i].nodes[1].y ;
-    double Cos = ax/sqrt(ax*ax+ay*ay) ;
-    double orientationBacteria = acos(Cos)* 180 / 3.1415 ;        // orientation of the bacteria
-    if(ay<0) orientationBacteria *= -1 ;
-    double alfa ;
-    
-    m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].x + domainx , domainx) / dx ) ) ) % nx  ;
-    n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].y + domainy , domainy) / dy ) ) ) % ny  ;
-    for (int sx = -1*searchAreaForSlime ; sx <= searchAreaForSlime ; sx++)
-    {
-        for (int sy = -1*searchAreaForSlime ; sy<= searchAreaForSlime ; sy++ )
-        {
-            gridX = (m+sx) % nx ;
-            gridY = (n+sy) % ny ;
-            ax = sx * dx + dx/2 ;
-            ay = sy * dy + dy/2 ;
-            Cos = ax/ sqrt(ax * ax + ay * ay) ;
-            alfa = acos(Cos)*180 / 3.1415 ;
-            if (ay<0) alfa *= -1 ;
-            double gridAngleInSearchArea =  fmod ( alfa - orientationBacteria, 360 ) ;       // using alfa for searching among grids, Using fmod, because the result should be in the range (-180, 180 ) degree
-            
-            if (gridAngleInSearchArea >= -90 && gridAngleInSearchArea <= 90 )
-            {
-                deltax = ((m+sx)*dx + dx/2 ) - bacteria[i].nodes[0].x ;
-                deltay = ((n+sy)*dy + dy/2 ) - bacteria[i].nodes[0].y ;
-                r = sqrt (deltax*deltax + deltay*deltay) ;
-                if ( r < R)
-                {
-                    if (gridAngleInSearchArea > -90 && gridAngleInSearchArea <= -54)
-                    {
-                        
-                        slimeRegions[0] += slime[gridX][gridY] ;
-                        gridInRegions[0] += 1 ;
-                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
-                        {
-                            gridWithSlime[0] += 1 ;
-                        }
-                    }
-                    else if (gridAngleInSearchArea > -54 && gridAngleInSearchArea <= -18)
-                    {
-                        
-                        slimeRegions[1] += slime[gridX][gridY] ;
-                        gridInRegions[1] += 1 ;
-                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
-                        {
-                            gridWithSlime[1] += 1 ;
-                        }
-                    }
-                    else if (gridAngleInSearchArea> -18 && gridAngleInSearchArea <= 18)
-                    {
-                        
-                        slimeRegions[2] += slime[gridX][gridY] ;
-                        gridInRegions[2] += 1 ;
-                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
-                        {
-                            gridWithSlime[2] += 1 ;
-                        }
-                    }
-                    
-                    else if (gridAngleInSearchArea > 18 && gridAngleInSearchArea <= 54)
-                    {
-                        
-                        slimeRegions[3] += slime[gridX][gridY] ;
-                        gridInRegions[3] += 1 ;
-                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
-                        {
-                            gridWithSlime[3] += 1 ;
-                        }
-                    }
-                    
-                    else if (gridAngleInSearchArea > 54 && gridAngleInSearchArea <= 90)
-                    {
-                        
-                        slimeRegions[4] += slime[gridX][gridY] ;
-                        gridInRegions[4] += 1 ;
-                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
-                        {
-                            gridWithSlime[4] += 1 ;
-                        }
-                    }
-                    
-                    totalSlimeInSearchArea += slime[gridX][gridY] ;
-                    
-                }
-                
-            }
-            
-        }
-    }
-    
-    if (totalSlimeInSearchArea < 0.000001)
-    {
-        bacteria[i].fSTFx = 0.0 ;
-        bacteria[i].fSTFy = 0.0 ;
-        // There is no slime in the search area
-        
-    }
-    /*
-     else
-     {   double mostFilledRegion= 0.0 ;
-     for (int i=0 ; i < 5 ; i++)
-     {
-     if (( gridWithSlime[i] / gridInRegions[i] ) > 0.8 )
-     {
-     if ( abs(i-2) < abs(region-2) )             // lower change in angle
-     {
-     mostFilledRegion = slimeRegions[i] ;
-     region = i ;
-     }
-     else if ( ( abs(i-2) == abs(region-2) ) && rand() % 2 ==0 )     //choosing between two randomly
-     {
-     mostFilledRegion = slimeRegions[i] ;
-     region = i ;
-     }
-     }
-     }
-     if ( region ==6) region = 2 ;                       // re-initialization after checking the conditions
-     alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
-     // using alfa(radiant) for direction of the force
-     // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
-     
-     bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
-     bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
-     // (S/S0) is not included yet
-     }
-     */
-    else
-    {   double maxSlimeRegion= 0.0 ;
-        for (int i=0 ; i < 5 ; i++)
-        {
-            if (slimeRegions[i] > maxSlimeRegion )
-            {
-                maxSlimeRegion = slimeRegions[i] ;
-                region = i ;
-            }
-        }
-        for (int i=0 ; i<5 ; i++)
-        {
-            if ( (slimeRegions[i] > 0.8 * maxSlimeRegion))
-            {
-                if ( abs(i-2) < abs(region-2) )
-                {
-                    region = i ;
-                }
-                
-                //       else if ( abs(i-2) == abs(region-2) && rand() % 2 ==0  )
-                else if ( abs(i-2) == abs(region-2) && slimeRegions[i] > slimeRegions[region])
-                {
-                    region = i ;
-                }
-                
-            }
-        }
-        alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
-        // using alfa(radiant) for direction of the force
-        // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
-        
-        bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
-        bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
-        // (S/S0) is not included yet
-    }
-    return  sqrt(bacteria[i].fSTFx * bacteria[i].fSTFx + bacteria[i].fSTFy * bacteria[i].fSTFy) ;
-}
+//double SlimeTrailFollowing (int i, double R)        // i th bacteria, radius of the search area
+//{
+//    int m=0   ;
+//    int n=0   ;
+//    int gridX ;
+//    int gridY ;
+//    double deltax ;
+//    double deltay ;
+//    double r ;
+//    int region = 2 ;
+//    double totalSlimeInSearchArea = 0.0 ;
+//    double gridInRegions [5] = { } ;                // number of grids in each region
+//    double gridWithSlime [5] = { } ;                   // number of grids containing slime
+//    double slimeRegions[5] = { }   ;                // the amount of slime in each region
+//    /*
+//     0:  area between 0 and 36
+//     1:  area between 36 and 72
+//     2:  area between 72 and 108
+//     3:  area between 108 and 144
+//     4:  area between 144 and 180
+//     */
+//
+//    double ax = bacteria[i].nodes[0].x - bacteria[i].nodes[1].x ;
+//    double ay = bacteria[i].nodes[0].y - bacteria[i].nodes[1].y ;
+//    double Cos = ax/sqrt(ax*ax+ay*ay) ;
+//    double orientationBacteria = acos(Cos)* 180 / 3.1415 ;        // orientation of the bacteria
+//    if(ay<0) orientationBacteria *= -1 ;
+//    double alfa ;
+//
+//    m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].x + domainx , domainx) / dx ) ) ) % nx  ;
+//    n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[0].y + domainy , domainy) / dy ) ) ) % ny  ;
+//    for (int sx = -1*searchAreaForSlime ; sx <= searchAreaForSlime ; sx++)
+//    {
+//        for (int sy = -1*searchAreaForSlime ; sy<= searchAreaForSlime ; sy++ )
+//        {
+//            gridX = (m+sx) % nx ;
+//            gridY = (n+sy) % ny ;
+//            ax = sx * dx + dx/2 ;
+//            ay = sy * dy + dy/2 ;
+//            Cos = ax/ sqrt(ax * ax + ay * ay) ;
+//            alfa = acos(Cos)*180 / 3.1415 ;
+//            if (ay<0) alfa *= -1 ;
+//            double gridAngleInSearchArea =  fmod ( alfa - orientationBacteria, 360 ) ;       // using alfa for searching among grids, Using fmod, because the result should be in the range (-180, 180 ) degree
+//
+//            if (gridAngleInSearchArea >= -90 && gridAngleInSearchArea <= 90 )
+//            {
+//                deltax = ((m+sx)*dx + dx/2 ) - bacteria[i].nodes[0].x ;
+//                deltay = ((n+sy)*dy + dy/2 ) - bacteria[i].nodes[0].y ;
+//                r = sqrt (deltax*deltax + deltay*deltay) ;
+//                if ( r < R)
+//                {
+//                    if (gridAngleInSearchArea > -90 && gridAngleInSearchArea <= -54)
+//                    {
+//
+//                        slimeRegions[0] += slime[gridX][gridY] ;
+//                        gridInRegions[0] += 1 ;
+//                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
+//                        {
+//                            gridWithSlime[0] += 1 ;
+//                        }
+//                    }
+//                    else if (gridAngleInSearchArea > -54 && gridAngleInSearchArea <= -18)
+//                    {
+//
+//                        slimeRegions[1] += slime[gridX][gridY] ;
+//                        gridInRegions[1] += 1 ;
+//                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+//                        {
+//                            gridWithSlime[1] += 1 ;
+//                        }
+//                    }
+//                    else if (gridAngleInSearchArea> -18 && gridAngleInSearchArea <= 18)
+//                    {
+//
+//                        slimeRegions[2] += slime[gridX][gridY] ;
+//                        gridInRegions[2] += 1 ;
+//                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+//                        {
+//                            gridWithSlime[2] += 1 ;
+//                        }
+//                    }
+//
+//                    else if (gridAngleInSearchArea > 18 && gridAngleInSearchArea <= 54)
+//                    {
+//
+//                        slimeRegions[3] += slime[gridX][gridY] ;
+//                        gridInRegions[3] += 1 ;
+//                        if ( slime[gridX][gridY] - s0  >= 0.0000001)
+//                        {
+//                            gridWithSlime[3] += 1 ;
+//                        }
+//                    }
+//
+//                    else if (gridAngleInSearchArea > 54 && gridAngleInSearchArea <= 90)
+//                    {
+//
+//                        slimeRegions[4] += slime[gridX][gridY] ;
+//                        gridInRegions[4] += 1 ;
+//                        if ( slime[gridX][gridY] - s0 >= 0.0000001)
+//                        {
+//                            gridWithSlime[4] += 1 ;
+//                        }
+//                    }
+//
+//                    totalSlimeInSearchArea += slime[gridX][gridY] ;
+//
+//                }
+//
+//            }
+//
+//        }
+//    }
+//
+//    if (totalSlimeInSearchArea < 0.000001)
+//    {
+//        bacteria[i].fSTFx = 0.0 ;
+//        bacteria[i].fSTFy = 0.0 ;
+//        // There is no slime in the search area
+//
+//    }
+//    /*
+//     else
+//     {   double mostFilledRegion= 0.0 ;
+//     for (int i=0 ; i < 5 ; i++)
+//     {
+//     if (( gridWithSlime[i] / gridInRegions[i] ) > 0.8 )
+//     {
+//     if ( abs(i-2) < abs(region-2) )             // lower change in angle
+//     {
+//     mostFilledRegion = slimeRegions[i] ;
+//     region = i ;
+//     }
+//     else if ( ( abs(i-2) == abs(region-2) ) && rand() % 2 ==0 )     //choosing between two randomly
+//     {
+//     mostFilledRegion = slimeRegions[i] ;
+//     region = i ;
+//     }
+//     }
+//     }
+//     if ( region ==6) region = 2 ;                       // re-initialization after checking the conditions
+//     alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
+//     // using alfa(radiant) for direction of the force
+//     // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
+//
+//     bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
+//     bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+//     // (S/S0) is not included yet
+//     }
+//     */
+//    else
+//    {   double maxSlimeRegion= 0.0 ;
+//        for (int i=0 ; i < 5 ; i++)
+//        {
+//            if (slimeRegions[i] > maxSlimeRegion )
+//            {
+//                maxSlimeRegion = slimeRegions[i] ;
+//                region = i ;
+//            }
+//        }
+//        for (int i=0 ; i<5 ; i++)
+//        {
+//            if ( (slimeRegions[i] > 0.8 * maxSlimeRegion))
+//            {
+//                if ( abs(i-2) < abs(region-2) )
+//                {
+//                    region = i ;
+//                }
+//
+//                //       else if ( abs(i-2) == abs(region-2) && rand() % 2 ==0  )
+//                else if ( abs(i-2) == abs(region-2) && slimeRegions[i] > slimeRegions[region])
+//                {
+//                    region = i ;
+//                }
+//
+//            }
+//        }
+//        alfa = ( (region -2 ) * 36 + orientationBacteria ) *3.1415/180 ;
+//        // using alfa(radiant) for direction of the force
+//        // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
+//
+//        bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
+//        bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+//        // (S/S0) is not included yet
+//    }
+//    return  sqrt(bacteria[i].fSTFx * bacteria[i].fSTFx + bacteria[i].fSTFy * bacteria[i].fSTFy) ;
+//}
 
 //-----------------------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------------------
@@ -1453,6 +1466,7 @@ void PiliForce ()
 }
 */
 //------------------------------------------------------------------------------------------------------------
+/*
 double AngleOfVector (double x1,double y1,double x2,double y2)
 {
     double ax = x2 - x1 ;
@@ -1463,6 +1477,7 @@ double AngleOfVector (double x1,double y1,double x2,double y2)
     return angle ;                                   // (-180,180)
     
 }
+ */
 //------------------------------------------------------------------------------------------------------------
 void SurfaceCoverage ()
 {
@@ -1569,6 +1584,7 @@ int PowerLawExponent ()
 }
 
 //------------------------------------------------------------------------------------------------------------
+/*
 void TurnOrientation ()
 {
     for (int i=0; i<nbacteria; i++)
@@ -1593,8 +1609,9 @@ void TurnOrientation ()
         }
     }
 }
-
+*/
 //------------------------------------------------------------------------------------------------------------
+/*
 double Cal_OrientationBacteria (int i)
 
 {
@@ -1607,149 +1624,150 @@ double Cal_OrientationBacteria (int i)
     bacteria[i].orientation = orientationBacteria ;
     return orientationBacteria ;
 }
+*/
+//------------------------------------------------------------------------------------------------------------
+//void UpdateReversalFrequency ()
+//{
+//    for (int i=0; i< nbacteria ; i++)
+//    {
+//        double ds = Cal_ChemoGradient2(i) ;
+//        Cal_OrientationBacteria(i) ;
+//        if (ds >= 0.0)
+//        {
+//            double preferedAngle = atan2(bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0, bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0) ;
+//            /*
+//            if (cos(bacteria[i].orientation - preferedAngle) < 0.0  )
+//            {
+//                //cout<< i<< '\t'<< bacteria[i].orientation<< '\t'<< preferedAngle<<'\t'<<cos(bacteria[i].orientation - preferedAngle)<<endl ;
+//            }
+//             */
+//            bacteria[i].reversalPeriod = 1.0 /( reversalRate * exp(chemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+//
+//
+//        }
+//        else
+//        {
+//            bacteria[i].reversalPeriod = 1.0/ reversalRate ;
+//        }
+//    }
+//}
 
 //------------------------------------------------------------------------------------------------------------
-void UpdateReversalFrequency ()
-{
-    for (int i=0; i< nbacteria ; i++)
-    {
-        double ds = Cal_ChemoGradient2(i) ;
-        Cal_OrientationBacteria(i) ;
-        if (ds >= 0.0)
-        {
-            double preferedAngle = atan2(bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0, bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0) ;
-            /*
-            if (cos(bacteria[i].orientation - preferedAngle) < 0.0  )
-            {
-                //cout<< i<< '\t'<< bacteria[i].orientation<< '\t'<< preferedAngle<<'\t'<<cos(bacteria[i].orientation - preferedAngle)<<endl ;
-            }
-             */
-            bacteria[i].reversalPeriod = 1.0 /( reversalRate * exp(chemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
-            
-            
-        }
-        else
-        {
-            bacteria[i].reversalPeriod = 1.0/ reversalRate ;
-        }
-    }
-}
+//double Cal_ChemoGradient (int i)
+//{
+//    double c0 = 1.0 ;   //amplitude of chemical
+//   // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
+//    double r2 = sqrt( pow( (bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0 ) ,2 ) + pow( (bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0 ) ,2 ) );
+//    double r1 = sqrt( pow( (bacteria[i].oldLoc.at(0) - domainx/2.0 ) ,2 ) + pow( (bacteria[i].oldLoc.at(1) - domainy/2.0 ) ,2 ) ) ;
+//    double ds = -1.0* c0 * (r2 - r1) ;
+//    //cout<< ds<<endl ;
+//    return ds;
+//}
 //------------------------------------------------------------------------------------------------------------
-double Cal_ChemoGradient (int i)
-{
-    double c0 = 1.0 ;   //amplitude of chemical
-   // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
-    double r2 = sqrt( pow( (bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0 ) ,2 ) + pow( (bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0 ) ,2 ) );
-    double r1 = sqrt( pow( (bacteria[i].oldLoc.at(0) - domainx/2.0 ) ,2 ) + pow( (bacteria[i].oldLoc.at(1) - domainy/2.0 ) ,2 ) ) ;
-    double ds = -1.0* c0 * (r2 - r1) ;
-    //cout<< ds<<endl ;
-    return ds;
-}
-//------------------------------------------------------------------------------------------------------------
-void WriteTrajectoryFile ()
-{
-    ofstream trajectories ("trajectories.txt", ofstream::app) ;
-    for (uint i = 0; i< nbacteria; i++)
-    {
-        trajectories << bacteria[i].nodes.at((nnode-1)/2).x <<'\t'<<bacteria[i].nodes.at((nnode-1)/2).y <<'\t' ;
-    }
-    trajectories<< endl ;
-}
+//void WriteTrajectoryFile ()
+//{
+//    ofstream trajectories ("trajectories.txt", ofstream::app) ;
+//    for (uint i = 0; i< nbacteria; i++)
+//    {
+//        trajectories << bacteria[i].nodes.at((nnode-1)/2).x <<'\t'<<bacteria[i].nodes.at((nnode-1)/2).y <<'\t' ;
+//    }
+//    trajectories<< endl ;
+//}
 //------------------------------------------------------------------------------------------------------------
 
-void WriteNumberReverse ()
-{
-    ofstream histogramReversal ("HistogramReversal.txt") ;
-    for (int i = 0; i < nbacteria ; i++)
-    {
-        histogramReversal << bacteria[i].numberReverse << '\t' << bacteria[i].timeToSource << endl ;
-    }
-}
+//void WriteNumberReverse ()
+//{
+//    ofstream histogramReversal ("HistogramReversal.txt") ;
+//    for (int i = 0; i < nbacteria ; i++)
+//    {
+//        histogramReversal << bacteria[i].numberReverse << '\t' << bacteria[i].timeToSource << endl ;
+//    }
+//}
 //------------------------------------------------------------------------------------------------------------
-double Cal_ChemoGradient2 (int i)
-{
-    double c0 = 1.0 ;   //amplitude of chemical
-    // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
-    int tmpXIndex = static_cast<int>( round( bacteria[i].nodes[(nnode-1)/2].x / 0.5 ) ) ; //0.5 is grid size, need to change it as a variable
-    int tmpYIndex = static_cast<int>( round( bacteria[i].nodes[(nnode-1)/2].y / 0.5 ) ) ;
-    gridInMain.at(tmpYIndex).at(tmpXIndex) ;
-    double ds = gridInMain.at(tmpYIndex).at(tmpXIndex) - bacteria[i].oldChem ;
-   // cout<<ds<<endl ;
-    return ds;
-}
+//double Cal_ChemoGradient2 (int i)
+//{
+//    double c0 = 1.0 ;   //amplitude of chemical
+//    // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
+//    int tmpXIndex = static_cast<int>( round( bacteria[i].nodes[(nnode-1)/2].x / 0.5 ) ) ; //0.5 is grid size, need to change it as a variable
+//    int tmpYIndex = static_cast<int>( round( bacteria[i].nodes[(nnode-1)/2].y / 0.5 ) ) ;
+//    gridInMain.at(tmpYIndex).at(tmpXIndex) ;
+//    double ds = gridInMain.at(tmpYIndex).at(tmpXIndex) - bacteria[i].oldChem ;
+//   // cout<<ds<<endl ;
+//    return ds;
+//}
 //------------------------------------------------------------------------------------------------------------
-void SlimeTraceHyphae (Fungi tmpFng)
-{
-    int m = 0 ;
-    int n = 0 ;
-    double xMin;
-    double xMax ;
-    double yMin ;
-    double yMax ;
-    int mMin = 0 ;
-    int mMax= 200 ;
-    int nMin = 0 ;
-    int nMax = 200 ;
-    double tmpH ;
-    double tmpS ;
-    double tmpL ;
-    double vec1x , vec1y, vec2x , vec2y ;
-    
-    
-    for (uint i=0; i< tmpFng.hyphaeSegments.size(); i++)
-    {
-        xMin = min(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
-        xMax = max(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
-        yMin = min(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
-        yMax = max(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
-        mMin = (static_cast<int> (floor ( fmod (xMin + domainx , domainx) / dx ) ) ) % nx  ;
-        mMax = (static_cast<int> (ceil ( fmod (xMax + domainx , domainx) / dx ) ) ) % nx  ;
-        nMin = (static_cast<int> (floor ( fmod (yMin + domainy , domainy) / dy ) ) ) % ny  ;
-        nMax = (static_cast<int> (ceil ( fmod (yMax + domainy , domainy) / dy ) ) ) % ny  ;
-        
-        tmpL = Dist2D(tmpFng.hyphaeSegments.at(i).x1, tmpFng.hyphaeSegments.at(i).y1, tmpFng.hyphaeSegments.at(i).x2, tmpFng.hyphaeSegments.at(i).y2) ;
-        
-        for (int m = mMin ; m <= mMax ; m++)
-            
-        {
-            for (int n = nMin; n <= nMax; n++)
-            {
-                vec1x = tmpFng.hyphaeSegments.at(i).x1 - m * dx ;
-                vec1y = tmpFng.hyphaeSegments.at(i).y1 - n * dy ;
-                vec2x = tmpFng.hyphaeSegments.at(i).x2 - m * dx ;
-                vec2y = tmpFng.hyphaeSegments.at(i).y2 - n * dy ;
-                tmpS = TriangleArea(vec1x, vec1y, vec2x, vec2y) ;
-                // 0.5 * h * l  = S
-                tmpH = 2.0 * tmpS / tmpL ;
-                if (tmpH < dx )
-                {
-                    //simple hyphae
-                    slime [m][n] = 2*s0 ;
-                    double decay = 10.0;
-                    double tmpDis = 0.0 ;
-                    
-                    for (int j=0; j<tmpFng.tips.at(0).size(); j++)
-                    {
-                        int id = tmpFng.tipsID.at(j) ;
-                        vec1x= tmpFng.hyphaeSegments.at(id).x2 - m*dx ;
-                        vec1y= tmpFng.hyphaeSegments.at(id).y2 - n*dy ;
-                        vec2x= tmpFng.hyphaeSegments.at(id).x2 - tmpFng.hyphaeSegments.at(id).x1 ;
-                        vec2y= tmpFng.hyphaeSegments.at(id).y2 - tmpFng.hyphaeSegments.at(id).y1 ;
-                        double tmplength = MagnitudeVec(vec2x, vec2y) ;
-                        double tmpAngle = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
-                        tmpDis = Dist2D(tmpFng.tips.at(0).at(j), tmpFng.tips.at(1).at(j), m * dx, n * dy) ;
-                        if (tmpAngle < pi/ 20.0 && tmpDis < tmplength   )
-                        {
-                            
-                        slime[m][n] += exp(-tmpDis/ decay) ;
-                            
-                        }
-                    }
-                }
-    
-                
-            }
-            
-        }
-    }
-}
+//void SlimeTraceHyphae (Fungi tmpFng)
+//{
+//    int m = 0 ;
+//    int n = 0 ;
+//    double xMin;
+//    double xMax ;
+//    double yMin ;
+//    double yMax ;
+//    int mMin = 0 ;
+//    int mMax= 200 ;
+//    int nMin = 0 ;
+//    int nMax = 200 ;
+//    double tmpH ;
+//    double tmpS ;
+//    double tmpL ;
+//    double vec1x , vec1y, vec2x , vec2y ;
+//
+//
+//    for (uint i=0; i< tmpFng.hyphaeSegments.size(); i++)
+//    {
+//        xMin = min(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
+//        xMax = max(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
+//        yMin = min(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
+//        yMax = max(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
+//        mMin = (static_cast<int> (floor ( fmod (xMin + domainx , domainx) / dx ) ) ) % nx  ;
+//        mMax = (static_cast<int> (ceil ( fmod (xMax + domainx , domainx) / dx ) ) ) % nx  ;
+//        nMin = (static_cast<int> (floor ( fmod (yMin + domainy , domainy) / dy ) ) ) % ny  ;
+//        nMax = (static_cast<int> (ceil ( fmod (yMax + domainy , domainy) / dy ) ) ) % ny  ;
+//
+//        tmpL = Dist2D(tmpFng.hyphaeSegments.at(i).x1, tmpFng.hyphaeSegments.at(i).y1, tmpFng.hyphaeSegments.at(i).x2, tmpFng.hyphaeSegments.at(i).y2) ;
+//
+//        for (int m = mMin ; m <= mMax ; m++)
+//
+//        {
+//            for (int n = nMin; n <= nMax; n++)
+//            {
+//                vec1x = tmpFng.hyphaeSegments.at(i).x1 - m * dx ;
+//                vec1y = tmpFng.hyphaeSegments.at(i).y1 - n * dy ;
+//                vec2x = tmpFng.hyphaeSegments.at(i).x2 - m * dx ;
+//                vec2y = tmpFng.hyphaeSegments.at(i).y2 - n * dy ;
+//                tmpS = TriangleArea(vec1x, vec1y, vec2x, vec2y) ;
+//                // 0.5 * h * l  = S
+//                tmpH = 2.0 * tmpS / tmpL ;
+//                if (tmpH < dx )
+//                {
+//                    //simple hyphae
+//                    slime [m][n] = 2*s0 ;
+//                    double decay = 10.0;
+//                    double tmpDis = 0.0 ;
+//
+//                    for (int j=0; j<tmpFng.tips.at(0).size(); j++)
+//                    {
+//                        int id = tmpFng.tipsID.at(j) ;
+//                        vec1x= tmpFng.hyphaeSegments.at(id).x2 - m*dx ;
+//                        vec1y= tmpFng.hyphaeSegments.at(id).y2 - n*dy ;
+//                        vec2x= tmpFng.hyphaeSegments.at(id).x2 - tmpFng.hyphaeSegments.at(id).x1 ;
+//                        vec2y= tmpFng.hyphaeSegments.at(id).y2 - tmpFng.hyphaeSegments.at(id).y1 ;
+//                        double tmplength = MagnitudeVec(vec2x, vec2y) ;
+//                        double tmpAngle = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
+//                        tmpDis = Dist2D(tmpFng.tips.at(0).at(j), tmpFng.tips.at(1).at(j), m * dx, n * dy) ;
+//                        if (tmpAngle < pi/ 20.0 && tmpDis < tmplength   )
+//                        {
+//
+//                        slime[m][n] += exp(-tmpDis/ decay) ;
+//
+//                        }
+//                    }
+//                }
+//
+//
+//            }
+//
+//        }
+//    }
+//}

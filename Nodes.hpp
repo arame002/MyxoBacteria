@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 #include <numeric>
+#include "SignalCommon.hpp"
 
 using namespace std ;
 
