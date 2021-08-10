@@ -6,6 +6,6 @@
 #include "TissueGrid.hpp"
 #include "driver.h"
 
-TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax , vector<vector<double> > tips) ;
+TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax ,int nGridX , int nGridY, vector<vector<double> > tips) ;
 
 #endif /* Diffusion2D_h */

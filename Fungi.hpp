@@ -23,6 +23,7 @@ public:
     vector<HyphaeSegment> hyphaeSegments ;
     vector<vector<double> > tips ;
     vector<int > tipsID ;
+    double hyphaeWidth = 4.0 ;
     
     void Find_Hyphae_Tips() ;
     

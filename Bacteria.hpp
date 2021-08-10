@@ -17,7 +17,7 @@ class bacterium
     vector<node> allnodes ;
     vector<node> duplicate ;
     vector<double> connection ;
-    double reversalPeriod = 300.0 ;
+    double reversalPeriod = 4.0 ;       //300
     double protein ;
     bool copy ;
     double reversalTime ;

@@ -7,7 +7,7 @@ namespace constants
     extern const double pi { 3.141592653589793 };
 
     // Spatial Parameters
-    extern const double dx { 10};  
+    extern const double dx { 15};  
 
     // // Extension Parameters
     extern const double dTheta { 13 * (pi/180) };
