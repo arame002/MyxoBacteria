@@ -18,6 +18,7 @@ void RandomForce() ;
 void Initialization () ;
 void Initialization2 () ;
 void CircularInitialization () ;
+void SwarmingInitialization () ;
 void PositionUpdating (double  ) ;                               // (time step)
 void ljNodesPosition () ;
  void ParaView2 () ;
@@ -31,16 +32,8 @@ int PowerLawExponent () ;
 //-----------------------------------------------------------------------------------------------------
 //Bacteria properties
 double length = 2 ;
-double B = 0.5 ;                      // bending constant
-double tetta0=3.1415 ;               // prefered angle, Pi
-double K =  1.0 ;                      // linear spring constant (stiffness)
 double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
-double fmotor = 0.3 ;                           //   Ft/(N-1)
-double Rp = 0.3 ;                               // protein exchange rate
-double turnPeriod = 5.0 ;
 
-double reversalRate = .25 ;
-double chemoStrength = 10.0 ;
 
 //-----------------------------------------------------------------------------------------------------
 //domain and medium properties
@@ -66,12 +59,11 @@ int fNoVisit = 0 ;
 //slime properties
 double sr = 0.25 ;                          // slime rate production
 double kd = 0.05 ;                           // slime decay rate
-double slimeEffectiveness = 5.0 ;           // needed for slime trail following
+//double slimeEffectiveness = 0.6 ;           // needed for slime trail following
 double s0 = 1 ;
 //double slime[nx][ny] ;
 int surfaceCoverage[nx][ny] ;
 double coveragePercentage = 0 ;
-int searchAreaForSlime = static_cast<int> (round((length/2.0)/ min(dx , dy))) ;
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -99,11 +91,11 @@ double runTime = 200.0 ;
 
 int main ()
 {
-   
+
    auto start = std::chrono::high_resolution_clock::now() ;
     
     srand(time (0)) ;
-    cout<<"Search area for slime is "<<searchAreaForSlime<<endl ;
+    cout<<"Search area for slime is "<<tissueBacteria.searchAreaForSlime<<endl ;
     for (int m=0; m<nx; m++)
     {
         for (int n=0; n<ny; n++)
@@ -142,8 +134,9 @@ int main ()
    
     //Myxo() ;
     //Initialization() ;
-    Initialization2() ;
+    //Initialization2() ;
     //CircularInitialization() ;
+    SwarmingInitialization () ;
     ljNodesPosition() ;
     tissueBacteria.InitialProtein() ;
     InitialReversalTime() ;
@@ -160,14 +153,22 @@ int main ()
     }
     Fungi fungi = driver() ;
     vector<HyphaeSegment> hyphaeSegments_main = fungi.hyphaeSegments ;
-    
-    vector<vector<double> > pointSources ;
-    //pointSources = fungi.tips ;
-    pointSources = tissueBacteria.GridSources() ;
+   
+   //Bacteria would try to follow hyphae as a highway
+   tissueBacteria.sourceAlongHyphae = true ;
+   tissueBacteria.SlimeTraceHyphae(fungi) ;
+   
+   vector<vector<double> > pointSources ;
+   //pointSources = fungi.tips ;
+   //fungi.WriteSourceLoc() ;
+   //source for simulation 1
+   //pointSources = tissueBacteria.GridSources() ;
+   pointSources = tissueBacteria.sourceChemo ;
+   fungi.WriteSourceLoc( pointSources) ;
+   
     tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0, domainx, 0, domainy ,nx , ny ,pointSources) ;
    
-    //Bacteria would try to follow hyphae as a highway
-    //tissueBacteria.SlimeTraceHyphae(fungi) ;
+   
     for (int l=0; l< (nt+1); l++)
     {
         if (l < initialNt)
@@ -250,9 +251,10 @@ int main ()
                cout<<(l-initialNt)/inverseDt<<endl ;
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 //    cout << coveragePercentage <<endl ;
+               
+               tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
             }
             PositionUpdating(dt) ;
-           tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
         }
         
     }
@@ -283,7 +285,8 @@ void PositionUpdating (double t)
        {
           cout<<"positionUpdating, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
        }
-       tissueBacteria.bacteria[i].oldChem = tissueBacteria.gridInMain.at(tmpYIndex).at(tmpXIndex) ;
+       // oldChem is now updated in Cal_Chemical2
+       //tissueBacteria.bacteria[i].oldChem = tissueBacteria.gridInMain.at(tmpYIndex).at(tmpXIndex) ;
         for(int j=0 ; j<nnode; j++)
         {
             tissueBacteria.Diffusion(tissueBacteria.bacteria[i].nodes[j].x , tissueBacteria.bacteria[i].nodes[j].y) ;
@@ -378,14 +381,15 @@ void Initialization ()
 //-----------------------------------------------------------------------------------------------------
 void Initialization2 ()
 {
-    int nextLine = static_cast<int>(ceil( sqrt(nbacteria/2)/2) )  ;
-    int row = -nextLine ;
-    int coloum = -nextLine ;
-    double tmpDomainX = domainx* 0.5 ;
-    double tmpDomainY = domainy * 0.5 ;
+    int nextLine = static_cast<int>(round( sqrt(nbacteria/2.0)/2.0) )  ;
+    cout<< "next line is: "<<nextLine<< endl ;
+    int row = -2.0 * nextLine ;
+    int coloum = -nextLine  ;
+    double tmpDomainX = domainx * 0.8 ;
+    double tmpDomainY = domainy * 0.8 ;
     double a ;
     double b ;
-    double lx = sqrt (2*tmpDomainX * tmpDomainY / nbacteria ) ;
+    double lx = sqrt (2.0 * tmpDomainX * tmpDomainY / nbacteria ) ;
     double ly = lx ;
     for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
     {
@@ -451,6 +455,42 @@ void CircularInitialization ()
     
 }
 
+void SwarmingInitialization ()
+{
+   
+   double a ;
+   double b ;
+   double minX =  domainx - 4.0 * tissueBacteria.agarThicknessX ;    //3
+   double maxX = domainx - 3.0 * tissueBacteria.agarThicknessX ;     //2
+   double tmpDomainSizeX = maxX - minX ;
+   double minY = 2.0 * tissueBacteria.agarThicknessY ;               //2
+   double maxY = domainy - 2.0 * tissueBacteria.agarThicknessY ;     //2
+   double tmpDomainSizeY = maxY - minY ;
+    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
+    {
+       a = (rand() / (RAND_MAX + 1.0)) * tmpDomainSizeX ;
+       b = (rand() / (RAND_MAX + 1.0)) * tmpDomainSizeY ;
+       tissueBacteria.bacteria[i].nodes[j].x = minX + a ;
+       tissueBacteria.bacteria[i].nodes[j].y = minY + b ;
+        
+        a= gasdev(&idum) ;
+        b=gasdev(&idum) ;
+        a= a/ sqrt(a*a+b*b) ;
+        b = b/ sqrt(a*a+b*b) ;
+        for (int n=1; n<=(nnode-1)/2; n++)
+        {
+           // or nodes[j].x + n * x0 * a
+           tissueBacteria.bacteria[i].nodes[j+n].x = tissueBacteria.bacteria[i].nodes[j+n-1].x + x0 * a ;
+           tissueBacteria.bacteria[i].nodes[j-n].x = tissueBacteria.bacteria[i].nodes[j-n+1].x - x0 * a ;
+           tissueBacteria.bacteria[i].nodes[j+n].y = tissueBacteria.bacteria[i].nodes[j+n-1].y + x0 * b ;
+           tissueBacteria.bacteria[i].nodes[j-n].y = tissueBacteria.bacteria[i].nodes[j-n+1].y - x0 * b ;
+        }
+    }
+    
+}
+
+
+
 //-----------------------------------------------------------------------------------------------------
 void ljNodesPosition ()
 {
@@ -496,7 +536,7 @@ void ParaView2 ()
     }
     
     SignalOut << "POINT_DATA " << (nx )*(ny )*(nz ) << endl;
-    SignalOut << "SCALARS DPP float 1" << endl;
+    SignalOut << "SCALARS liquid float 1" << endl;
     SignalOut << "LOOKUP_TABLE default" << endl;
     
     for (int k = 0; k < nz ; k++) {

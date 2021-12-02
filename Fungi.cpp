@@ -42,3 +42,14 @@ void Fungi::Find_Hyphae_Tips()
         }
     }
 }
+
+void Fungi:: WriteSourceLoc(vector<vector<double> > pointSource)
+{
+    ofstream sourceLoc ("sourceLocation.txt") ;
+    for (uint i = 0; i< pointSource.at(0).size() ; i++)
+    {
+        sourceLoc << pointSource.at(0).at(i) <<'\t'<< pointSource.at(1).at(i) <<endl ;
+    }
+    sourceLoc<< endl ;
+}
+

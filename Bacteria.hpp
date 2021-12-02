@@ -17,7 +17,7 @@ class bacterium
     vector<node> allnodes ;
     vector<node> duplicate ;
     vector<double> connection ;
-    double reversalPeriod = 4.0 ;       //300
+    double reversalPeriod = 7.0 ;       //300
     double protein ;
     bool copy ;
     double reversalTime ;
@@ -29,6 +29,7 @@ class bacterium
     bool turnStatus = false ;
     double turnTime = 0.0 ;
     double turnAngle = 0.0 ;
+    double maxTurnAngle = (3.1415)/5.0 ;
     vector<double> oldLoc ;
     double oldChem = 0.0 ;
     int numberReverse = 0 ;

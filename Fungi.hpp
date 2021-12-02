@@ -11,6 +11,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <math.h>
 #include <vector>
@@ -23,9 +24,10 @@ public:
     vector<HyphaeSegment> hyphaeSegments ;
     vector<vector<double> > tips ;
     vector<int > tipsID ;
-    double hyphaeWidth = 4.0 ;
+    double hyphaeWidth = 6.0 ;
     
     void Find_Hyphae_Tips() ;
+    void WriteSourceLoc(vector<vector<double> >) ;
     
 };
 

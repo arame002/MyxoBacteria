@@ -3,17 +3,20 @@
 
 TissueGrid::TissueGrid ()
 {
-    dx = static_cast<double> ( ( xDomainMax - xDomainMin ) / numberGridsX ) ;
-    dy = static_cast<double> ( ( yDomainMax - yDomainMin ) / numberGridsY ) ;
-    dt *= 1.0 /Diffusion ;
+    grid_dx = static_cast<double> ( ( xDomainMax - xDomainMin ) / numberGridsX ) ;
+    grid_dy = static_cast<double> ( ( yDomainMax - yDomainMin ) / numberGridsY ) ;
+    grid_dt *= 1.0 /Diffusion ;
 }
 
-void TissueGrid::DomainBoundaries(double xMin, double xMax, double yMin, double yMax)
+void TissueGrid::DomainBoundaries(double xMin, double xMax, double yMin, double yMax, int nGridX , int nGridY)
 {
     xDomainMin = xMin ;
     xDomainMax = xMax ;
     yDomainMin = yMin ;
     yDomainMax = yMax ;
+    numberGridsX = nGridX ;
+    numberGridsY = nGridY ;
+    TissueGrid () ;
 }
 
 
@@ -48,7 +51,7 @@ void TissueGrid::DiffusionChanges()
     {
         for (int j = 0; j< numberGridsX -1 ; j++)
         {
-            tmpChange = Diffusion * ( grids.at(i).at(j+1).value - grids.at(i).at(j).value) * dt / (dx * dx) ;
+            tmpChange = Diffusion * ( grids.at(i).at(j+1).value - grids.at(i).at(j).value) * grid_dt / (grid_dx * grid_dx) ;
             grids.at(i).at(j).change += tmpChange ;
             grids.at(i).at(j+1).change += -tmpChange ;
 
@@ -58,7 +61,7 @@ void TissueGrid::DiffusionChanges()
     {
         for (int j = 0; j< numberGridsX ; j++)
         {
-            tmpChange = Diffusion * (grids.at(i+1).at(j).value - grids.at(i).at(j).value) * dt / (dy * dy) ;
+            tmpChange = Diffusion * (grids.at(i+1).at(j).value - grids.at(i).at(j).value) * grid_dt / (grid_dy * grid_dy) ;
             grids.at(i).at(j).change += tmpChange ;
             grids.at(i+1).at(j).change += -tmpChange ;
             
@@ -73,8 +76,10 @@ void TissueGrid::FindProductionPoints()
     int tmpIndexY ;
     for (unsigned int i = 0; i < xSources.size(); i++)
     {
-        tmpIndexX = static_cast<int>(round ( ( xSources.at(i) - xDomainMin ) / dx ) ) ;
-        tmpIndexY = static_cast<int>(round ( ( ySources.at(i) - yDomainMin ) / dy ) ) ;
+        tmpIndexX = static_cast<int>(round ( ( xSources.at(i) - xDomainMin ) / grid_dx ) ) ;
+        tmpIndexX = fmod(tmpIndexX, numberGridsX ) ;
+        tmpIndexY = static_cast<int>(round ( ( ySources.at(i) - yDomainMin ) / grid_dy ) ) ;
+        tmpIndexY = fmod(tmpIndexY, numberGridsY ) ;
         
         double tmpPro = pro* exp(-fmod(i, 4)/10.0) ;
         grids.at(tmpIndexY).at(tmpIndexX).productionRate += tmpPro ;
@@ -96,7 +101,7 @@ void TissueGrid::ProductionChanges()
         tmpIdX = indexSourceX.at(i) ;
         tmpIdY = indexSourceY.at(i) ;
         
-        tmpChange = ( grids.at(tmpIdY).at(tmpIdX).productionRate) * dt ;
+        tmpChange = ( grids.at(tmpIdY).at(tmpIdX).productionRate) * grid_dt ;
         grids.at(tmpIdY).at(tmpIdX).change += tmpChange ;
         
     }
@@ -110,7 +115,7 @@ void TissueGrid::DegredationChanges()
     {
         for (int j = 0; j< numberGridsX ; j++)
         {
-            tmpChange = - deg * (grids.at(i).at(j).value ) * dt ;
+            tmpChange = - deg * (grids.at(i).at(j).value ) * grid_dt ;
             grids.at(i).at(j).change += tmpChange ;
             
         }
@@ -145,7 +150,7 @@ void TissueGrid::EulerMethod()
         {
             for (int j = 0; j< numberGridsX ; j++)
             {
-                if (grids.at(i).at(j).change/( (grids.at(i).at(j).value + smallValue) ) > smallValue * dt  )
+                if (grids.at(i).at(j).change/( (grids.at(i).at(j).value + smallValue) ) > smallValue * grid_dt  )
                 {
                     status = false ;
                     break ;
@@ -161,6 +166,7 @@ void TissueGrid::EulerMethod()
         l++ ;
         
     }
+    RoundToZero() ;
     ParaViewGrids(l/100) ;
     cout<<l<<endl ;
     return ;
@@ -180,13 +186,13 @@ void TissueGrid::ParaViewGrids(int index)
     SignalOut << "X_COORDINATES " << numberGridsX << " float" << endl;
     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
     for (int i = 0; i < numberGridsX ; i++) {
-        SignalOut << i * dx << endl;
+        SignalOut << i * grid_dx << endl;
     }
     
     SignalOut << "Y_COORDINATES " << numberGridsY << " float" << endl;
     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
     for (int j = 0; j < numberGridsY; j++) {
-        SignalOut << j * dy << endl;
+        SignalOut << j * grid_dy << endl;
     }
     
     SignalOut << "Z_COORDINATES " << 1 << " float" << endl;
@@ -196,7 +202,7 @@ void TissueGrid::ParaViewGrids(int index)
     }
     
     SignalOut << "POINT_DATA " << (numberGridsX )*( numberGridsY ) << endl;
-    SignalOut << "SCALARS DPP float 1" << endl;
+    SignalOut << "SCALARS trehalose float 1" << endl;
     SignalOut << "LOOKUP_TABLE default" << endl;
     
     for (int k = 0; k < 1 ; k++) {
@@ -208,4 +214,17 @@ void TissueGrid::ParaViewGrids(int index)
     }
     
 
+}
+void TissueGrid::RoundToZero()
+{
+    for (int i = 0; i<numberGridsY; i++)
+    {
+        for (int j=0; j< numberGridsX; j++)
+        {
+            if (grids.at(j).at(i).value < pow(10, -30) )
+            {
+                grids.at(j).at(i).value = 0.0 ;
+            }
+        }
+    }
 }
