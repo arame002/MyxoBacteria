@@ -134,9 +134,9 @@ int main ()
    
     //Myxo() ;
     //Initialization() ;
-    //Initialization2() ;
+    Initialization2() ;
     //CircularInitialization() ;
-    SwarmingInitialization () ;
+    //SwarmingInitialization () ;
     ljNodesPosition() ;
     tissueBacteria.InitialProtein() ;
     InitialReversalTime() ;
@@ -166,7 +166,7 @@ int main ()
    pointSources = tissueBacteria.sourceChemo ;
    fungi.WriteSourceLoc( pointSources) ;
    
-    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0, domainx, 0, domainy ,nx , ny ,pointSources) ;
+    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0, domainx, 0, domainy ,nx , ny ,pointSources, tissueBacteria.sourceProduction ) ;
    
    
     for (int l=0; l< (nt+1); l++)
@@ -197,7 +197,7 @@ int main ()
             tissueBacteria.AllNodes() ;
             tissueBacteria.Spring () ;
             tissueBacteria.Bending() ;
-            //tissueBacteria.u_lj() ;
+            tissueBacteria.u_lj() ;
             //  RandomForce() ;
             tissueBacteria.Motor () ;
             tissueBacteria.TurnOrientation() ;
