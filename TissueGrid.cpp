@@ -70,7 +70,7 @@ void TissueGrid::DiffusionChanges()
     return ;
 }
 
-void TissueGrid::FindProductionPoints()
+void TissueGrid::FindProductionPoints(vector<double> pSrc)
 {
     int tmpIndexX ;
     int tmpIndexY ;
@@ -81,9 +81,14 @@ void TissueGrid::FindProductionPoints()
         tmpIndexY = static_cast<int>(round ( ( ySources.at(i) - yDomainMin ) / grid_dy ) ) ;
         tmpIndexY = fmod(tmpIndexY, numberGridsY ) ;
         
-        double tmpPro = pro* exp(-fmod(i, 4)/10.0) ;
-        grids.at(tmpIndexY).at(tmpIndexX).productionRate += tmpPro ;
-        grids.at(tmpIndexY).at(tmpIndexX).productionRate = pro ;
+        //double tmpPro = pro* exp(-fmod(i, 4)/10.0) ;
+        //grids.at(tmpIndexY).at(tmpIndexX).productionRate += tmpPro ;
+        
+        //grids.at(tmpIndexY).at(tmpIndexX).productionRate = pro ;
+        
+        //Based on relative distance in segment
+        grids.at(tmpIndexY).at(tmpIndexX).productionRate = pSrc.at(i) ;
+        
         indexSourceX.push_back(tmpIndexX) ;
         indexSourceY.push_back(tmpIndexY) ;
         

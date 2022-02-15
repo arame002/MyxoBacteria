@@ -18,9 +18,10 @@ public:
     double tetta0=3.1415 ;               // prefered angle, Pi
     double K =  1.0 ;                      // linear spring constant (stiffness)
     double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
-    double fmotor = 0.1 ;                           //   Ft/(N-1)
+    double fmotor = 0.3/nnode ;                           //   Ft/(N-1)
+    double motorEfficiency = 1.0 ;
     double Rp = 0.3 ;                               // protein exchange rate
-    double turnPeriod = 50.0 ;
+    double turnPeriod = 1.0 ;
     int shiftx = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
     int shifty = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
     const double dx= 0.5 ;
@@ -35,23 +36,29 @@ public:
     
     double sr = 0.25 ;                          // slime rate production
     double kd = 0.05 ;                           // slime decay rate
-    double slimeEffectiveness = 5.0 ;           // needed for slime trail following
-    double s0 = 1 ;
-    int searchAreaForSlime = static_cast<int> (round((length/2.0)/ min(dx , dy))) ;
+    double slimeEffectiveness = 0.8 ;           // needed for slime trail following, used to be 5
+    double s0 = 1.0 ;
+    int searchAreaForSlime = static_cast<int> (round(( length )/ min(dx , dy))) ;
     //double slime[nx][ny] ;
     vector<vector<double> > slime ;
     vector<vector<double> > gridInMain ;
-    
+    vector<vector<double> > sourceChemo ;
+    vector<double> sourceProduction ;
+    bool sourceAlongHyphae = false ;
 
-    double reversalRate = 0.025 ;
-    double chemoStrength = 10.0 ;
+    double reversalRate = 1.0/ 7.0 ;         //0.025
+    double minimumRunTime = 1.0 ;
+    double chemoStrength = 5000.0 ;
+    double agarThicknessX = domainx/20 ;
+    double agarThicknessY = domainy/20 ;
+    bool inLiquid = true ;
     
     
-    double kblz=1.0 , temp=0.01 , eta1 = 1.0 , eta2 = 5.0 ;
+    double kblz=1.0 , temp=1.0 , eta1 = 0.02 , eta2 = 4.0 ;
     
 
     TissueBacteria () ;
-    vector<vector<double> > Cal_Diffusion2D (double xMin, double xMax, double yMin, double yMax, vector<vector<double> > sources) ;
+    vector<vector<double> > Cal_Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX, int nGridY ,vector<vector<double> > sources, vector<double> pSource) ;
     void Myxo () ;
     void Spring() ;
     double Distance (int ,int, int, int) ;                                     // bacteria, node, bacteria, node
@@ -85,6 +92,8 @@ public:
     void WriteTrajectoryFile () ;
     void WriteNumberReverse () ;
     void SlimeTraceHyphae (Fungi tmpFng) ;
+    vector<vector<double> > GridSources () ;
+    
 
     
 };

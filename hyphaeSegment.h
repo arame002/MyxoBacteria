@@ -19,6 +19,12 @@ class HyphaeSegment {
         int from_who;
         int extend_to;
         int branch_to;
+        
+    
+        double p1 = 0.0 ;     //production at the beginning
+        double p2 = 0.0 ;     //production at the end
+        double tmpP1 = 0.0 ;
+        double tmpP2 = 0.0 ;
     
     
     

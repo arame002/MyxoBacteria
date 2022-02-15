@@ -31,7 +31,7 @@ public:
     void InitializeAllGrids () ;
     void ClearChanges () ;
     void DiffusionChanges () ;
-    void FindProductionPoints () ;
+    void FindProductionPoints (vector<double> pSrc) ;
     void ProductionChanges () ;
     void DegredationChanges () ;
     void UpdateChanges () ;

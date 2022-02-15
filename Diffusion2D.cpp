@@ -3,7 +3,7 @@
 
 
 //int main ()
-TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY ,vector<vector<double> > sources)
+TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY ,vector<vector<double> > sources, vector<double> pSrc)
 {
     vector<vector<double> > pointSource = sources ;
     TissueGrid tissue ;
@@ -17,7 +17,7 @@ TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int n
     tissue.xSources = pointSource.at(0) ;
     tissue.ySources = pointSource.at(1) ;
     tissue.InitializeAllGrids() ;
-    tissue.FindProductionPoints() ;
+    tissue.FindProductionPoints(pSrc) ;
     tissue.EulerMethod() ;
 
     

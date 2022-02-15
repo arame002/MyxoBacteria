@@ -16,9 +16,9 @@ TissueBacteria:: TissueBacteria()
     sourceChemo.resize(2) ;
 }
 //-----------------------------------------------------------------------------------------------------
-vector<vector<double> > TissueBacteria::Cal_Diffusion2D(double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY,vector<vector<double> > sources)
+vector<vector<double> > TissueBacteria::Cal_Diffusion2D(double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY,vector<vector<double> > sources, vector<double> pSource)
 {
-    tGrids = Diffusion2D(xMin, xMax, yMin, yMax,nGridX , nGridY ,sources ) ;
+    tGrids = Diffusion2D(xMin, xMax, yMin, yMax,nGridX , nGridY ,sources, pSource ) ;
     vector<vector<double> > tmpGrid ;
     
     for (unsigned int i=0; i< tGrids.grids.size() ; i++)
@@ -1313,6 +1313,10 @@ void TissueBacteria:: SlimeTraceHyphae (Fungi tmpFng)
                 {
                     sourceChemo.at(0).push_back(m*dx) ;
                     sourceChemo.at(1).push_back(n*dy) ;
+                    double tmpXtoX1 = Dist2D(tmpFng.hyphaeSegments.at(i).x1, tmpFng.hyphaeSegments.at(i).y1, m*dx, n*dy ) ;
+                    double pSource = tmpFng.hyphaeSegments.at(i).p1 + (tmpFng.hyphaeSegments.at(i).p2 - tmpFng.hyphaeSegments.at(i).p1)*(tmpXtoX1/tmpL) ;
+                    sourceProduction.push_back(pSource) ;
+                    
                 }
     
                 

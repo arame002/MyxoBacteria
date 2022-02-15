@@ -16,7 +16,7 @@ Fungi driver (){
     //   Set Up Static Mycelia
     // ---------------------------------------------------
     // Initialize starting parameters
-    double init_hyphae_count = 1;   // Number of initial hyphae segments
+    double init_hyphae_count = 4;   // Number of initial hyphae segments
     
     Fungi fungi ;                   //Alireza
     //vector<HyphaeSegment> fungi.hyphaeSegments;       // Vector of classes where hyphae info is stored
@@ -32,18 +32,21 @@ Fungi driver (){
     cout << " " << endl;
     cout << "INITIAL HYPHAE:" << endl;
     cout << "---------------" << endl;
-    double initAngle = - pi ; // pi / 4.0 ;
+    double initAngle =  pi/4 ; // pi / 4.0 ;
     for ( int i = 0; i < init_hyphae_count; i++ ) {
         
         // Starting points and angles
         fungi.hyphaeSegments.push_back( new_hy );                                             // Append hy vector for new segment
-        fungi.hyphaeSegments[i].x1 = 90;                                                      // One endpoint of i^th segment: x-coordinate
+        fungi.hyphaeSegments[i].x1 = 60;                                                      // One endpoint of i^th segment: x-coordinate
         fungi.hyphaeSegments[i].y1 = 50;                                                      // One endpoint of i^th segment: y-coordinate
         fungi.hyphaeSegments[i].angle = i * ( ( 2 * pi ) / init_hyphae_count ) + initAngle ;  // Angle of i^th segment
         fungi.hyphaeSegments[i].x2 = fungi.hyphaeSegments[i].x1 + dx * cos( fungi.hyphaeSegments[i].angle );                      // Other endpoint of i^th segment: x-coordinate
         fungi.hyphaeSegments[i].y2 = fungi.hyphaeSegments[i].y1 + dx * sin( fungi.hyphaeSegments[i].angle );                      // Other endpoint of i^th segment: y-coordinate
         fungi.hyphaeSegments[i].can_branch = true;                                            // The i^th segment can extend
         fungi.hyphaeSegments[i].can_extend = true;                                            // The i^th segment can branch
+        fungi.hyphaeSegments[i].from_who = -1 ;
+        fungi.hyphaeSegments[i].extend_to = -1 ;
+        fungi.hyphaeSegments[i].branch_to = -1 ;
 
         // Print out info:
         cout << "Segment " << i << endl;
@@ -55,7 +58,10 @@ Fungi driver (){
     cout << " " << endl;
     cout << "EXTENDED/BRANCHED HYPHAE:" << endl;
     cout << "-------------------------" << endl;
-    /*
+    //add_new_hyphae( fungi.hyphaeSegments, 0, constants::dTheta, "extend");      //4th
+    //add_new_hyphae( fungi.hyphaeSegments, 1, constants::dTheta, "extend");      //4th
+    //add_new_hyphae( fungi.hyphaeSegments, 1, ( pi / 3.0 ), "branch");             //7th
+    
     add_new_hyphae( fungi.hyphaeSegments, 0, constants::dTheta, "extend");      //4th
     add_new_hyphae( fungi.hyphaeSegments, 2, 0, "extend");                      //5th
     add_new_hyphae( fungi.hyphaeSegments, 5, 0, "extend");                      //6th
@@ -74,7 +80,7 @@ Fungi driver (){
     add_new_hyphae( fungi.hyphaeSegments, 14, 0, "extend");                      //15th
     add_new_hyphae( fungi.hyphaeSegments, 15, pi/3.0 , "branch");                      //16th
     add_new_hyphae( fungi.hyphaeSegments, 6, 0, "extend");                      //17th
-    */
+    
     cout << " " << endl;
     /*
     add_new_hyphae( fungi.hyphaeSegments, 0, 0, "extend");
@@ -82,7 +88,11 @@ Fungi driver (){
     add_new_hyphae( fungi.hyphaeSegments, 2, 0, "extend");
     add_new_hyphae( fungi.hyphaeSegments, 3, 0, "extend");
     */
-    fungi.Find_Hyphae_Tips() ;
+    //fungi.Find_Hyphae_Tips() ;
+    fungi.Find_Hyphae_Tips2() ;         //branch points are not tip
+    fungi.FindCenterPointConnection() ;
+    
+    fungi.FindProductionNetwork() ;
 
     return fungi ;
     
