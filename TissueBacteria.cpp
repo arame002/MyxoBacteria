@@ -76,6 +76,12 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     Slime_CutOff = globalConfigVars.getConfigValue("slime_Attachment_CutOff").toDouble() ;
     searchAreaForSlime = static_cast<int> (round(( length )/ min(dx , dy))) ;
     
+    inLiquid = globalConfigVars.getConfigValue("Bacteria_inLiquid").toInt() ;
+    PBC = globalConfigVars.getConfigValue("Bacteria_PBC").toInt() ;
+    chemotacticMechanism = static_cast<ChemotacticMechanism>( globalConfigVars.getConfigValue("Bacteria_chemotacticModel").toInt() ) ;
+    initialCondition =static_cast<InitialCondition>( globalConfigVars.getConfigValue("Bacteria_InitialCondition").toInt() ) ;
+    run_calibrated = static_cast<bool>( globalConfigVars.getConfigValue("Run_Calibrated").toInt() ) ;
+    
     for (int i = 0; i< nbacteria; i++)
     {
         bacteria[i].UpdateBacteria_FromConfigFile() ;

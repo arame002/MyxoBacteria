@@ -135,7 +135,10 @@ int main (int argc, char* argv[])
    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0.0, domainx, 0.0, domainy ,tissueBacteria.nx , tissueBacteria.ny ,pointSources, tissueBacteria.sourceProduction ) ;
    tissueBacteria.Pass_PointSources_To_Bacteria(pointSources) ;
    
-   tissueBacteria.Update_BacteriaMaxDuration() ;
+   if (tissueBacteria.run_calibrated)
+   {
+      tissueBacteria.Update_BacteriaMaxDuration() ;
+   }
    
    //tissueBacteria.WriteNumberReverse() ;
    

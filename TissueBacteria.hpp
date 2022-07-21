@@ -40,6 +40,7 @@ public:
     bool PBC = true ;
     ChemotacticMechanism chemotacticMechanism = classic ;
     InitialCondition initialCondition = circular ;
+    bool run_calibrated = 1 ;
 
     double length = 2 ;
     double B = 0.5 ;                      // bending constant
