@@ -1,9 +1,0 @@
-cmake \
--DCMAKE_C_COMPILER=$(which gcc)  \
--DCMAKE_CXX_COMPILER=$(which g++)  \
--DCUDA_INCLUDE_DIRS=${CUDA_HOME}/include \
--DBUILD_TESTING=OFF \
-ENABLE_TESTS_COMPILATION=False \
-./
-
-make -j 20
