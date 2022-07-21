@@ -17,7 +17,7 @@
 #include <vector>
 
 #include "growthFunctions.h"
-#include "hyphaeSegment.h"
+
 class Fungi {
 public:
     
@@ -25,10 +25,19 @@ public:
     vector<vector<double> > tips ;
     vector<int > tipsID ;
     vector<int> centerConnectedSegments ;
+    double extendingAngle = 13.0 * (constants::pi / 180.0) ;
     double hyphaeWidth = 6.0 ;
     double production = pow(10, 2) ;
     double proDecayFactor = 0.5 ;
+    double initX = 90.0 ;
+    double initY = 50 ;
+    int init_Count = 1 ;
     
+    int machineID = 1 ;
+    string folderName = "./animation/machine" + to_string(machineID) + "/" ;
+    string statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
+    
+    Fungi () ;
     void Find_Hyphae_Tips() ;
     void Find_Hyphae_Tips2() ;
     void WriteSourceLoc(vector<vector<double> >) ;
@@ -38,6 +47,8 @@ public:
     void Rec_CalNeighborProduction (int id, vector<int> ngbrList, int nbrElement, bool connection) ;
     void Rec_CalNeighborProduction2(int id, vector<int> ngbrList, int nbrElement ) ;
     vector<int> FindCenterPointConnection () ;
+    void UpdateFungiFolderNames (int ) ;
+    void UpdateFungi_FromConfigFile () ;
     
 };
 

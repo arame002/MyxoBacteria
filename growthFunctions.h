@@ -3,6 +3,8 @@
 
 #include <tuple>
 #include <vector>
+#include "hyphaeSegment.h"
+#include "constants.h"
 using namespace std;
 
 class HyphaeSegment;

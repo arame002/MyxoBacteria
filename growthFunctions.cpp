@@ -5,11 +5,9 @@
 #include <tuple>
 #include <vector>
 
-#include "constants.h"
-#include "hyphaeSegment.h"
+#include "growthFunctions.h"
 using namespace std;
 using constants::pi;
-using constants::dx;
 
 void add_new_hyphae( vector<HyphaeSegment> &hy, int from_idx, double angle_new, string growth_type ) {
 
@@ -44,8 +42,8 @@ void add_new_hyphae( vector<HyphaeSegment> &hy, int from_idx, double angle_new, 
     hy[new_idx].x1 = hy[from_idx].x2;                                   // Starting endpoint of new segment (x-coorindate)
     hy[new_idx].y1 = hy[from_idx].y2;                                   // Starting endpoint of new segment (y-coorindate)
     hy[new_idx].angle = hy[from_idx].angle + angle_new;                 // Angle of the new segment
-    hy[new_idx].x2 = hy[new_idx].x1 + dx * cos( hy[new_idx].angle );    // Ending endpoint of new segment (x-coorindate)
-    hy[new_idx].y2 = hy[new_idx].y1 + dx * sin( hy[new_idx].angle );    // Ending endpoint of new segment (y-coorindate)
+    hy[new_idx].x2 = hy[new_idx].x1 + hy[new_idx].hyphaeLength * cos( hy[new_idx].angle );    // Ending endpoint of new segment (x-coorindate)
+    hy[new_idx].y2 = hy[new_idx].y1 + hy[new_idx].hyphaeLength * sin( hy[new_idx].angle );    // Ending endpoint of new segment (y-coorindate)
 
     // Print out info:
     cout << "Segment " << from_idx << " " << growth_type << " to " << new_idx << endl;

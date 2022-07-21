@@ -8,6 +8,12 @@
 
 #include "Fungi.hpp"
 //end points and branches are tips
+Fungi::Fungi ()
+{
+    UpdateFungi_FromConfigFile() ;
+}
+
+
 void Fungi::Find_Hyphae_Tips()
 {
     tips.resize(2) ;
@@ -63,7 +69,7 @@ void Fungi::Find_Hyphae_Tips2()
 
 void Fungi:: WriteSourceLoc(vector<vector<double> > pointSource)
 {
-    ofstream sourceLoc ("sourceLocation.txt") ;
+    ofstream sourceLoc (statsFolder + "sourceLocation.txt") ;
     for (uint i = 0; i< pointSource.at(0).size() ; i++)
     {
         sourceLoc << pointSource.at(0).at(i) <<'\t'<< pointSource.at(1).at(i) <<endl ;
@@ -250,3 +256,24 @@ vector<int> Fungi::FindCenterPointConnection()
 }
 
 //---------------------------------------------------------------------------------------------
+void Fungi::UpdateFungiFolderNames(int id)
+{
+    machineID = id ;
+    folderName = "./animation/machine" + to_string(machineID) + "/" ;
+    statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
+    
+}
+
+void Fungi::UpdateFungi_FromConfigFile()
+{
+    folderName = globalConfigVars.getConfigValue("AnimationFolder").toString() ;
+    statsFolder = globalConfigVars.getConfigValue("StatFolderName").toString() ;
+    
+    init_Count = globalConfigVars.getConfigValue("hyphae_initCount").toDouble() ;
+    initX = globalConfigVars.getConfigValue("hyphae_InitPosX").toDouble() ;
+    initY = globalConfigVars.getConfigValue("hyphae_InitPosY").toDouble() ;
+    production = globalConfigVars.getConfigValue("hyphae_production").toDouble() ;
+    proDecayFactor = globalConfigVars.getConfigValue("hyphae_proDecayFactor").toDouble() ;
+    hyphaeWidth = globalConfigVars.getConfigValue("hyphae_Width").toDouble() ;
+    
+}

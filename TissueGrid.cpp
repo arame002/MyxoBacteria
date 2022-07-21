@@ -5,7 +5,6 @@ TissueGrid::TissueGrid ()
 {
     grid_dx = static_cast<double> ( ( xDomainMax - xDomainMin ) / numberGridsX ) ;
     grid_dy = static_cast<double> ( ( yDomainMax - yDomainMin ) / numberGridsY ) ;
-    grid_dt *= 1.0 /Diffusion ;
 }
 
 void TissueGrid::DomainBoundaries(double xMin, double xMax, double yMin, double yMax, int nGridX , int nGridY)
@@ -16,7 +15,9 @@ void TissueGrid::DomainBoundaries(double xMin, double xMax, double yMin, double 
     yDomainMax = yMax ;
     numberGridsX = nGridX ;
     numberGridsY = nGridY ;
-    TissueGrid () ;
+    grid_dx = static_cast<double> ( ( xDomainMax - xDomainMin ) / numberGridsX ) ;
+    grid_dy = static_cast<double> ( ( yDomainMax - yDomainMin ) / numberGridsY ) ;
+    grid_dt *= 1.0 /Diffusion ;
 }
 
 
@@ -143,7 +144,7 @@ void TissueGrid::EulerMethod()
 {
     int l = 0 ;
     bool status = false ;
-    while (status == false && l< 1000)
+    while (status == false && l< 10000)
     {
         status = true ;
         double smallValue = 0.0001 ;
@@ -179,7 +180,7 @@ void TissueGrid::EulerMethod()
 
 void TissueGrid::ParaViewGrids(int index)
 {
-    string vtkFileName2 = "GridChem"+ to_string(index)+ ".vtk" ;
+    string vtkFileName2 = folderName + "GridChem"+ to_string(index)+ ".vtk" ;
     ofstream SignalOut;
     SignalOut.open(vtkFileName2.c_str());
     SignalOut << "# vtk DataFile Version 2.0" << endl;
@@ -232,4 +233,26 @@ void TissueGrid::RoundToZero()
             }
         }
     }
+}
+
+
+void TissueGrid::UpdateTGridsFolderNames(int id)
+{
+    machineID = id ;
+    folderName = "./animation/machine" + to_string(machineID) + "/" ;
+    statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
+    
+}
+
+void TissueGrid::UpdateTGrid_FromConfigFile()
+{
+    folderName = globalConfigVars.getConfigValue("AnimationFolder").toString() ;
+    statsFolder = globalConfigVars.getConfigValue("StatFolderName").toString() ;
+   // numberGridsX = globalConfigVars.getConfigValue("grid_NumberX").toDouble() ;
+   // numberGridsY = globalConfigVars.getConfigValue("grid_NumberY").toDouble() ;
+    Diffusion = globalConfigVars.getConfigValue("grid_DiffusionCoeff").toDouble() ;
+    deg = globalConfigVars.getConfigValue("grid_degradationRate").toDouble() ;
+    pro = globalConfigVars.getConfigValue("grid_productionRate").toDouble() ;
+    grid_dt = globalConfigVars.getConfigValue("grid_timeStep").toDouble() ;
+    
 }

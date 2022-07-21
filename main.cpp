@@ -1,11 +1,9 @@
 
 
 #include "TissueBacteria.hpp"
-#include "ranum2.h"
 //#include "SignalCommon.hpp"
 #include <chrono>
 
-long  idum=(-799);
 
 
 
@@ -14,33 +12,22 @@ long  idum=(-799);
 
 
 void RandomForce() ;
-                                            // inverse head and tail
-void Initialization () ;
-void Initialization2 () ;
-void CircularInitialization () ;
-void SwarmingInitialization () ;
-void PositionUpdating (double  ) ;                               // (time step)
-void ljNodesPosition () ;
- void ParaView2 () ;
-void InitialReversalTime () ;
+void PositionUpdating (double ) ;                               // (time step)
+void ParaView2 () ;
 void InitialPili () ;
 void SurfaceCoverage () ;
 void VisitsPerGrid () ;
 int PowerLawExponent () ;
-
-
-//-----------------------------------------------------------------------------------------------------
-//Bacteria properties
-double length = 2 ;
-double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
-
+void Update_SurfaceCoverage (ofstream ProteinLevelFile ,ofstream FrequencyOfVisit ) ;
+void InitializeMatrix () ;
+void initializeSlurmConfig(int argc, char* argv[]) ;
 
 //-----------------------------------------------------------------------------------------------------
 //domain and medium properties
-//double kblz=1.0 , temp=1.0 , eta1 = 0.02 , eta2 = 5.0 ;
-double diffusion ;
-int shiftx = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
-int shifty = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
+
+GlobalConfigVars globalConfigVars ;
+TissueBacteria tissueBacteria ;
+
 const double dx= 0.5 ;
 const double dy= 0.5 ;
 const int nx = static_cast<int>(domainx/dx) ;               //number of grids in X-axis
@@ -57,11 +44,6 @@ int fNoVisit = 0 ;
 
 //-----------------------------------------------------------------------------------------------------
 //slime properties
-double sr = 0.25 ;                          // slime rate production
-double kd = 0.05 ;                           // slime decay rate
-//double slimeEffectiveness = 0.6 ;           // needed for slime trail following
-double s0 = 1 ;
-//double slime[nx][ny] ;
 int surfaceCoverage[nx][ny] ;
 double coveragePercentage = 0 ;
 
@@ -78,97 +60,86 @@ double nAttachedPili = 0.0 ;
 
 //-----------------------------------------------------------------------------------------------------
 //simulation parameters
-double dt=0.0001 ;
-double initialStep = 0.0001 ;
+
 int index1 = 0 ;                                     // needed for ParaView
 
 //-----------------------------------------------------------------------------------------------------
-double initialTime = 4.0 ;
-double runTime = 200.0 ;
 
-    TissueBacteria tissueBacteria ;
-    //bacterium bacteria[nbacteria];
-
-int main ()
+int main (int argc, char* argv[])
 {
 
    auto start = std::chrono::high_resolution_clock::now() ;
-    
-    srand(time (0)) ;
-    cout<<"Search area for slime is "<<tissueBacteria.searchAreaForSlime<<endl ;
-    for (int m=0; m<nx; m++)
-    {
-        for (int n=0; n<ny; n++)
-        {
-           tissueBacteria.slime[m][n] = s0  ;
-            surfaceCoverage[m][n] = 0 ;
-            visit[m][n] = 0 ;
-        }
-    }
-    
-    for (int i=0; i<nx; i++)
-    {
-        X[i]= i*dx ;
-    }
-    for (int j=0; j<ny; j++)
-    {
-        Y[j]= j * dy ;
-    }
+   
+   
+   initializeSlurmConfig(argc, argv);
+   tissueBacteria.UpdateTissue_FromConfigFile() ;
+   Fungi fungi;
+  
+   srand(time (0)) ;
+   cout<<"Search area for slime is "<<tissueBacteria.searchAreaForSlime<<endl ;
     
     
-    //-----------------------------------------------------------------------------------------------------
+    //---------------------------- Defining output files and directories ------------------------------
     ofstream ProteinLevelFile ;
-    ProteinLevelFile.open("ProteinLevelFile.txt") ;
+    ProteinLevelFile.open(tissueBacteria.statsFolder + "ProteinLevelFile.txt") ;
     ofstream FrequencyOfVisit ;
-    FrequencyOfVisit.open("FrequncyOfVisit.txt") ;
+    FrequencyOfVisit.open(tissueBacteria.statsFolder +"FrequncyOfVisit.txt") ;
+    ofstream strSwitchP (tissueBacteria.statsFolder +"SwitchProbablities.txt" ) ;
     
     cout<<"program is running"<<endl  ;
-    double nt=runTime/dt + initialTime/initialStep ;                   //total number of steps
+   //--------------------------- Time controlling parameters ------------------------------------------
+    double nt= tissueBacteria.runTime/tissueBacteria.dt + tissueBacteria.initialTime/tissueBacteria.initialStep ;                   //total number of steps
     nt =static_cast<int>(nt) ;
-    double initialNt =initialTime/initialStep ;                     // run time for initialization
+    double initialNt = tissueBacteria.initialTime/tissueBacteria.initialStep ;                     // run time for initialization
     initialNt =static_cast<int>(initialNt) ;
     //    int inverseInitialStep = static_cast<int>(initialNt/initialTime) ;  // used for visualization(ParaView)
-    int inverseDt =static_cast<int>((nt-initialNt)/(runTime)) ;              // used for visualization(ParaView)
+    int inverseDt =static_cast<int>((nt-initialNt)/(tissueBacteria.runTime)) ;              // used for visualization(ParaView)
     // each frame is 0.1 second
     inverseDt = inverseDt/10 ;
    
-    //Myxo() ;
-    //Initialization() ;
-    Initialization2() ;
-    //CircularInitialization() ;
-    //SwarmingInitialization () ;
-    ljNodesPosition() ;
-    tissueBacteria.InitialProtein() ;
-    InitialReversalTime() ;
-    InitialPili () ;
-    for (int i=0; i<nbacteria; i++)
-    {
-       tissueBacteria.bacteria[i].connection[i]=0.0 ;
-        for (int j=0 ; j<nnode ; j++)
-        {
-           tissueBacteria.bacteria[i].nodes[j].xdev = 0.0 ;
-           tissueBacteria.bacteria[i].nodes[j].ydev = 0.0 ;
-            
-        }
-    }
-    Fungi fungi = driver() ;
-    vector<HyphaeSegment> hyphaeSegments_main = fungi.hyphaeSegments ;
+   //--------------------------- Initializations -----------------------------------------------------
+   tissueBacteria.Bacteria_Initialization() ;
+   tissueBacteria.ljNodesPosition() ;
+   tissueBacteria.InitialProtein() ;
+   tissueBacteria.InitialReversalTime() ;
+   InitialPili () ;
+   InitializeMatrix() ;
+   tissueBacteria.Initialze_AllRandomForce() ;
+   
+   //--------------------------- Simulation setup -----------------------------------------------------
+   fungi = driver(fungi) ;
+   //fungi.UpdateFungiFolderNames( tissueBacteria.machineID ) ;
+   vector<HyphaeSegment> hyphaeSegments_main = fungi.hyphaeSegments ;
    
    //Bacteria would try to follow hyphae as a highway
-   tissueBacteria.sourceAlongHyphae = true ;
+   tissueBacteria.sourceAlongHyphae = false ;
    tissueBacteria.SlimeTraceHyphae(fungi) ;
    
    vector<vector<double> > pointSources ;
-   //pointSources = fungi.tips ;
+   
+   // no gradient
+   //pointSources.resize(2) ;
+   
+   // production at the tips
+   pointSources = fungi.tips ;
+   
+   tissueBacteria.sourceProduction.resize(pointSources.at(0).size()) ;
+   fill(tissueBacteria.sourceProduction.begin(), tissueBacteria.sourceProduction.end(), fungi.production) ;
+   
    //fungi.WriteSourceLoc() ;
    //source for simulation 1
    //pointSources = tissueBacteria.GridSources() ;
-   pointSources = tissueBacteria.sourceChemo ;
+   //pointSources = tissueBacteria.sourceChemo ;
    fungi.WriteSourceLoc( pointSources) ;
    
-    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0, domainx, 0, domainy ,nx , ny ,pointSources, tissueBacteria.sourceProduction ) ;
+   tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0.0, domainx, 0.0, domainy ,tissueBacteria.nx , tissueBacteria.ny ,pointSources, tissueBacteria.sourceProduction ) ;
+   tissueBacteria.Pass_PointSources_To_Bacteria(pointSources) ;
    
+   tissueBacteria.Update_BacteriaMaxDuration() ;
    
+   //tissueBacteria.WriteNumberReverse() ;
+   
+   //--------------------------- Main loop -----------------------------------------------------------
     for (int l=0; l< (nt+1); l++)
     {
         if (l < initialNt)
@@ -177,7 +148,7 @@ int main ()
             tissueBacteria.AllNodes() ;
             tissueBacteria.Spring () ;
             tissueBacteria.Bending() ;
-            //      u_lj() ;
+            //tissueBacteria.u_lj() ;
             //      RandomForce() ;
             /*
              if (l%inverseInitialStep==0)
@@ -186,7 +157,7 @@ int main ()
              ParaView2() ;
              }
              */
-            PositionUpdating(initialStep) ;
+            PositionUpdating(tissueBacteria.initialStep) ;
             
         }
         
@@ -209,52 +180,19 @@ int main ()
             
             if (l%inverseDt==0)
             {
-                /*
-                 string NumberOfVisits = "NumberOfVisits"+ to_string(index1)+ ".txt" ;
-                 ofstream NumberOfVisit;
-                 NumberOfVisit.open(NumberOfVisits.c_str());
-                 SurfaceCoverage() ;
-                 VisitsPerGrid() ;
-                 int alfaMin = PowerLawExponent() ;
-                 
-                 for (int m=0; m< nx; m++)
-                 {
-                 for (int n=0 ; n < ny ; n++)
-                 {
-                 NumberOfVisit<< visit[m][n]<<'\t' ;
-                 }
-                 NumberOfVisit<<endl ;
-                 }
-                 NumberOfVisit<<endl<<endl ;
-                 NumberOfVisit.close() ;
-                 
-                 for (int i=0; i<nbacteria; i++)
-                 {
-                 ProteinLevelFile<<bacteria[i].protein<<"," ;
-                 }
-                 ProteinLevelFile<< endl<<endl ;
-                 FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
-                 FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
-                 FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
-                 FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
-                 FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
-                 
-                 for (int i=0 ; i<numOfClasses ; i++)
-                 {
-                 FrequencyOfVisit<< frequency[i]<<'\t' ;
-                 }
-                 FrequencyOfVisit<<endl<<endl ;
-                 */
-                tissueBacteria.ParaView ()  ;
-                ParaView2() ;
+               //Update_SurfaceCoverage(ProteinLevelFile, FrequencyOfVisit) ;
+               tissueBacteria.ParaView ()  ;
+               ParaView2() ;
                tissueBacteria.WriteTrajectoryFile() ;
                cout<<(l-initialNt)/inverseDt<<endl ;
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 //    cout << coveragePercentage <<endl ;
                
+               // reducing time step in the simulation will result in changing the reversal frequencies. Lower number as inputs
                tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
+               tissueBacteria.Update_MotilityMetabolism( inverseDt * tissueBacteria.dt) ;
             }
-            PositionUpdating(dt) ;
+            PositionUpdating(tissueBacteria.dt) ;
         }
         
     }
@@ -279,9 +217,9 @@ void PositionUpdating (double t)
     {
        tissueBacteria.bacteria[i].oldLoc.at(0) = tissueBacteria.bacteria[i].nodes[(nnode-1)/2].x ;
        tissueBacteria.bacteria[i].oldLoc.at(1) = tissueBacteria.bacteria[i].nodes[(nnode-1)/2].y ;
-       int tmpXIndex = static_cast<int>( fmod( round(fmod( tissueBacteria.bacteria[i].nodes[(nnode-1)/2].x + domainx,domainx ) / dx ), nx) ) ;
-       int tmpYIndex = static_cast<int>( fmod( round(fmod( tissueBacteria.bacteria[i].nodes[(nnode-1)/2].y + domainy,domainy ) / dy ), ny )) ;
-       if (tmpXIndex< 0 || tmpXIndex > nx-1 || tmpYIndex< 0 || tmpYIndex > ny -1 )
+       int tmpXIndex = static_cast<int>( fmod( round(fmod( tissueBacteria.bacteria[i].nodes[(nnode-1)/2].x + domainx,domainx ) / dx ), tissueBacteria.nx) ) ;
+       int tmpYIndex = static_cast<int>( fmod( round(fmod( tissueBacteria.bacteria[i].nodes[(nnode-1)/2].y + domainy,domainy ) / dy ), tissueBacteria.ny )) ;
+       if (tmpXIndex< 0 || tmpXIndex > tissueBacteria.nx -1 || tmpYIndex< 0 || tmpYIndex > tissueBacteria.ny -1 )
        {
           cout<<"positionUpdating, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
        }
@@ -293,14 +231,14 @@ void PositionUpdating (double t)
             etaInverse = tissueBacteria.diffusion / (tissueBacteria.kblz * tissueBacteria.temp) ;
             totalForceX = tissueBacteria.bacteria[i].nodes[j].fSpringx ;       // it is not += because the old value is related to another node
             totalForceX += tissueBacteria.bacteria[i].nodes[j].fBendingx ;
-               //  totalForceX += tissueBacteria.bacteria[i].nodes[j].fljx ;
+                 totalForceX += tissueBacteria.bacteria[i].nodes[j].fljx ;
             totalForceX += tissueBacteria.bacteria[i].nodes[j].fMotorx ;
            tissueBacteria.bacteria[i].nodes[j].x += t * totalForceX * etaInverse ;
            tissueBacteria.bacteria[i].nodes[j].x += tissueBacteria.bacteria[i].nodes[j].xdev ;
             
             totalForceY = tissueBacteria.bacteria[i].nodes[j].fSpringy ;       // it is not += because the old value is related to another node
             totalForceY += tissueBacteria.bacteria[i].nodes[j].fBendingy ;
-              //   totalForceY += tissueBacteria.bacteria[i].nodes[j].fljy ;
+                 totalForceY += tissueBacteria.bacteria[i].nodes[j].fljy ;
             totalForceY += tissueBacteria.bacteria[i].nodes[j].fMotory ;
            tissueBacteria.bacteria[i].nodes[j].y += t * totalForceY * etaInverse ;
            tissueBacteria.bacteria[i].nodes[j].y += tissueBacteria.bacteria[i].nodes[j].ydev ;
@@ -320,212 +258,34 @@ void PositionUpdating (double t)
             
         }
     }
-    ljNodesPosition() ;
-}
-
-//-----------------------------------------------------------------------------------------------------
-double Distance (int i,int j, int k, int l)
-{
-    double dis= sqrt ((tissueBacteria.bacteria[i].nodes[j].x - tissueBacteria.bacteria[k].nodes[l].x) * (tissueBacteria.bacteria[i].nodes[j].x- tissueBacteria.bacteria[k].nodes[l].x) + (tissueBacteria.bacteria[i].nodes[j].y - tissueBacteria.bacteria[k].nodes[l].y) * (tissueBacteria.bacteria[i].nodes[j].y - tissueBacteria.bacteria[k].nodes[l].y)) ;
-    return dis ;
-}
-//-----------------------------------------------------------------------------------------------------
-double Cos0ijk(int i,int m)
-{
-    double dot= (tissueBacteria.bacteria[i].nodes[m-1].x - tissueBacteria.bacteria[i].nodes[m].x)*(tissueBacteria.bacteria[i].nodes[m+1].x - tissueBacteria.bacteria[i].nodes[m].x);
-    dot += (tissueBacteria.bacteria[i].nodes[m-1].y - tissueBacteria.bacteria[i].nodes[m].y)*(tissueBacteria.bacteria[i].nodes[m+1].y - tissueBacteria.bacteria[i].nodes[m].y) ;
-    double cos= dot / ( Distance(i,m-1,i,m) * Distance(i,m+1,i,m) ) ;
-    return cos ;
-}
-//-----------------------------------------------------------------------------------------------------
-void Initialization ()
-{
-    int nextLine = static_cast<int>(sqrt(nbacteria/2)) ;
-    int row = 0 ;
-    int coloum = 0 ;
-    double a ;
-    double b ;
-    double lx = sqrt (2*domainx * domainy / nbacteria ) ;
-    double ly = lx ;
-    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
-    {
-        if (row%2==0)
-        {
-           tissueBacteria.bacteria[i].nodes[j].x = lx * coloum ;
-        }
-        else   { tissueBacteria.bacteria[i].nodes[j].x = lx * coloum + lx /2 ; }
-       tissueBacteria.bacteria[i].nodes[j].y=  ly * row /2 ;
-        a= gasdev(&idum) ;
-        b=gasdev(&idum) ;
-        a= a/ sqrt(a*a+b*b) ;
-        b = b/ sqrt(a*a+b*b) ;
-        for (int n=1; n<=(nnode-1)/2; n++)
-        {
-           tissueBacteria.bacteria[i].nodes[j+n].x = tissueBacteria.bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           tissueBacteria.bacteria[i].nodes[j-n].x = tissueBacteria.bacteria[i].nodes[j-n+1].x - x0 * a ;
-           tissueBacteria.bacteria[i].nodes[j+n].y = tissueBacteria.bacteria[i].nodes[j+n-1].y + x0 * b ;
-           tissueBacteria.bacteria[i].nodes[j-n].y = tissueBacteria.bacteria[i].nodes[j-n+1].y - x0 * b ;
-        }
-        j=(nnode-1)/2 ;
-        if (coloum == nextLine-1)
-        {
-            row++ ;
-            coloum = 0 ;
-        }
-        
-        else {coloum++ ;}
-        
-    }
-    
-}
-//-----------------------------------------------------------------------------------------------------
-void Initialization2 ()
-{
-    int nextLine = static_cast<int>(round( sqrt(nbacteria/2.0)/2.0) )  ;
-    cout<< "next line is: "<<nextLine<< endl ;
-    int row = -2.0 * nextLine ;
-    int coloum = -nextLine  ;
-    double tmpDomainX = domainx * 0.8 ;
-    double tmpDomainY = domainy * 0.8 ;
-    double a ;
-    double b ;
-    double lx = sqrt (2.0 * tmpDomainX * tmpDomainY / nbacteria ) ;
-    double ly = lx ;
-    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
-    {
-        if (row%2==0)
-        {
-           tissueBacteria.bacteria[i].nodes[j].x = domainx/2.0 + lx * coloum ;
-        }
-        else   { tissueBacteria.bacteria[i].nodes[j].x = domainx/2.0 + lx * coloum + lx /2.0 ; }
-       tissueBacteria.bacteria[i].nodes[j].y=  domainy/2.0 + ly * row /2.0 ;
-        a= gasdev(&idum) ;
-        b=gasdev(&idum) ;
-        a= a/ sqrt(a*a+b*b) ;
-        b = b/ sqrt(a*a+b*b) ;
-        for (int n=1; n<=(nnode-1)/2; n++)
-        {
-           tissueBacteria.bacteria[i].nodes[j+n].x = tissueBacteria.bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           tissueBacteria.bacteria[i].nodes[j-n].x = tissueBacteria.bacteria[i].nodes[j-n+1].x - x0 * a ;
-           tissueBacteria.bacteria[i].nodes[j+n].y = tissueBacteria.bacteria[i].nodes[j+n-1].y + x0 * b ;
-           tissueBacteria.bacteria[i].nodes[j-n].y = tissueBacteria.bacteria[i].nodes[j-n+1].y - x0 * b ;
-        }
-        j=(nnode-1)/2 ;
-        if (coloum == nextLine-1)
-        {
-            row++ ;
-            coloum = -nextLine ;
-        }
-        
-        else {coloum++ ;}
-        
-    }
-    
-}
-
-//-----------------------------------------------------------------------------------------------------
-void CircularInitialization ()
-{
-    double raduis = 0.25 * sqrt(domainx * domainx  )/2.0 ;
-    double deltaTetta = 2.0 * 3.1416 / nbacteria ;
-    double cntrX = domainx/2.0 ;
-    double cntrY = domainy/2.0 ;
-    
-    double a ;
-    double b ;
-    double lx = sqrt (2*domainx * domainy / nbacteria ) ;
-    double ly = lx ;
-    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
-    {
-       tissueBacteria.bacteria[i].nodes[j].x = cntrX + raduis * cos( static_cast<double>(i* deltaTetta) ) ;
-       tissueBacteria.bacteria[i].nodes[j].y = cntrY + raduis * sin( static_cast<double>(i* deltaTetta) ) ;
-        
-        a= gasdev(&idum) ;
-        b=gasdev(&idum) ;
-        a= a/ sqrt(a*a+b*b) ;
-        b = b/ sqrt(a*a+b*b) ;
-        for (int n=1; n<=(nnode-1)/2; n++)
-        {
-           tissueBacteria.bacteria[i].nodes[j+n].x = tissueBacteria.bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           tissueBacteria.bacteria[i].nodes[j-n].x = tissueBacteria.bacteria[i].nodes[j-n+1].x - x0 * a ;
-           tissueBacteria.bacteria[i].nodes[j+n].y = tissueBacteria.bacteria[i].nodes[j+n-1].y + x0 * b ;
-           tissueBacteria.bacteria[i].nodes[j-n].y = tissueBacteria.bacteria[i].nodes[j-n+1].y - x0 * b ;
-        }
-    }
-    
-}
-
-void SwarmingInitialization ()
-{
-   
-   double a ;
-   double b ;
-   double minX =  domainx - 4.0 * tissueBacteria.agarThicknessX ;    //3
-   double maxX = domainx - 3.0 * tissueBacteria.agarThicknessX ;     //2
-   double tmpDomainSizeX = maxX - minX ;
-   double minY = 2.0 * tissueBacteria.agarThicknessY ;               //2
-   double maxY = domainy - 2.0 * tissueBacteria.agarThicknessY ;     //2
-   double tmpDomainSizeY = maxY - minY ;
-    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
-    {
-       a = (rand() / (RAND_MAX + 1.0)) * tmpDomainSizeX ;
-       b = (rand() / (RAND_MAX + 1.0)) * tmpDomainSizeY ;
-       tissueBacteria.bacteria[i].nodes[j].x = minX + a ;
-       tissueBacteria.bacteria[i].nodes[j].y = minY + b ;
-        
-        a= gasdev(&idum) ;
-        b=gasdev(&idum) ;
-        a= a/ sqrt(a*a+b*b) ;
-        b = b/ sqrt(a*a+b*b) ;
-        for (int n=1; n<=(nnode-1)/2; n++)
-        {
-           // or nodes[j].x + n * x0 * a
-           tissueBacteria.bacteria[i].nodes[j+n].x = tissueBacteria.bacteria[i].nodes[j+n-1].x + x0 * a ;
-           tissueBacteria.bacteria[i].nodes[j-n].x = tissueBacteria.bacteria[i].nodes[j-n+1].x - x0 * a ;
-           tissueBacteria.bacteria[i].nodes[j+n].y = tissueBacteria.bacteria[i].nodes[j+n-1].y + x0 * b ;
-           tissueBacteria.bacteria[i].nodes[j-n].y = tissueBacteria.bacteria[i].nodes[j-n+1].y - x0 * b ;
-        }
-    }
-    
+   tissueBacteria.ljNodesPosition() ;
 }
 
 
 
-//-----------------------------------------------------------------------------------------------------
-void ljNodesPosition ()
-{
-    for (int i=0; i<nbacteria; i++)
-    {
-        for (int j=0; j<nnode-1; j++)
-        {
-           tissueBacteria.bacteria[i].ljnodes[j].x = (tissueBacteria.bacteria[i].nodes[j].x + tissueBacteria.bacteria[i].nodes[j+1].x)/2 ;
-           tissueBacteria.bacteria[i].ljnodes[j].y = (tissueBacteria.bacteria[i].nodes[j].y + tissueBacteria.bacteria[i].nodes[j+1].y)/2 ;
-        }
-    }
-}
 //-----------------------------------------------------------------------------------------------------
 
 void ParaView2 ()
 {
     int index = index1 ;
-    string vtkFileName2 = "Grid"+ to_string(index)+ ".vtk" ;
+    string vtkFileName2 = tissueBacteria.folderName + "Grid"+ to_string(index)+ ".vtk" ;
     ofstream SignalOut;
     SignalOut.open(vtkFileName2.c_str());
     SignalOut << "# vtk DataFile Version 2.0" << endl;
     SignalOut << "Result for paraview 2d code" << endl;
     SignalOut << "ASCII" << endl;
     SignalOut << "DATASET RECTILINEAR_GRID" << endl;
-    SignalOut << "DIMENSIONS" << " " << nx  << " " << " " << ny << " " << nz  << endl;
+    SignalOut << "DIMENSIONS" << " " << tissueBacteria.nx  << " " << " " << tissueBacteria.ny << " " << nz  << endl;
     
-    SignalOut << "X_COORDINATES " << nx << " float" << endl;
+    SignalOut << "X_COORDINATES " << tissueBacteria.nx << " float" << endl;
     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
-    for (int i = 0; i < nx ; i++) {
+    for (int i = 0; i < tissueBacteria.nx ; i++) {
         SignalOut << X[i] << endl;
     }
     
-    SignalOut << "Y_COORDINATES " << ny << " float" << endl;
+    SignalOut << "Y_COORDINATES " << tissueBacteria.ny << " float" << endl;
     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
-    for (int j = 0; j < ny; j++) {
+    for (int j = 0; j < tissueBacteria.ny; j++) {
         SignalOut << Y[j] << endl;
     }
     
@@ -535,13 +295,13 @@ void ParaView2 ()
         SignalOut << 0 << endl;
     }
     
-    SignalOut << "POINT_DATA " << (nx )*(ny )*(nz ) << endl;
+    SignalOut << "POINT_DATA " << (tissueBacteria.nx )*(tissueBacteria.ny )*(nz ) << endl;
     SignalOut << "SCALARS liquid float 1" << endl;
     SignalOut << "LOOKUP_TABLE default" << endl;
     
     for (int k = 0; k < nz ; k++) {
-        for (int j = 0; j < ny; j++) {
-            for (int i = 0; i < nx; i++) {
+        for (int j = 0; j < tissueBacteria.ny; j++) {
+            for (int i = 0; i < tissueBacteria.nx; i++) {
                 SignalOut << tissueBacteria.slime[i][j] << endl;
             }
         }
@@ -550,25 +310,7 @@ void ParaView2 ()
     index1++ ;
 }
 
-//-----------------------------------------------------------------------------------------------------
-void InitialReversalTime ()
-{
-    for( int i=0 ; i<nbacteria ; i++)
-    {
-       tissueBacteria.bacteria[i].reversalTime = (rand() / (RAND_MAX + 1.0)) * tissueBacteria.bacteria[i].reversalPeriod ;
-       tissueBacteria.bacteria[i].reversalTime -= fmod(tissueBacteria.bacteria[i].reversalTime , dt ) ;
-        if (rand() / (RAND_MAX + 1.0) < 0.5)
-        {
-            //bacteria[i].directionOfMotion = false ;
-           tissueBacteria.bacteria[i].directionOfMotion = true ;
-        }
-        else
-        {
-           tissueBacteria.bacteria[i].directionOfMotion = true ;
-        }
-    }
-    
-}
+
 //-----------------------------------------------------------------------------------------------------
 void InitialPili ()
 {
@@ -611,18 +353,18 @@ void SurfaceCoverage ()
 {
     double percentage = 0 ;
     
-    for (int m=0; m< nx; m++)
+    for (int m=0; m< tissueBacteria.nx; m++)
     {
-        for (int n=0 ; n < ny ; n++)
+        for (int n=0 ; n < tissueBacteria.ny ; n++)
         {
-            if (tissueBacteria.slime[m][n] > s0 && surfaceCoverage[m][n] == 0 )
+            if (tissueBacteria.slime[m][n] > tissueBacteria.s0 && surfaceCoverage[m][n] == 0 )
             {
                 surfaceCoverage[m][n] = 1 ;
                 percentage += 1 ;
             }
         }
     }
-    percentage = percentage / (nx * ny * 1.0) ;
+    percentage = percentage / (tissueBacteria.nx * tissueBacteria.ny * 1.0) ;
     coveragePercentage += percentage ;
     
 }
@@ -641,23 +383,13 @@ void VisitsPerGrid ()
         for (int j=0; j<2*nnode-1 ; j++)
         {
             // we add domain to x and y in order to make sure m and n would not be negative integers
-            m = (static_cast<int> (round ( fmod (tissueBacteria.bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
-            n = (static_cast<int> (round ( fmod (tissueBacteria.bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
+            m = (static_cast<int> (round ( fmod (tissueBacteria.bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % tissueBacteria.nx  ;
+            n = (static_cast<int> (round ( fmod (tissueBacteria.bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % tissueBacteria.ny  ;
             visit[m][n] += 1 ;
             //  newVisit[m][n] = 1 ;
             
         }
     }
-    /*
-     for (int m = 0 ; m< nx ; m++)
-     {
-     for (int n = 0; n<ny; n++)
-     {
-     visit[m][n] = visit[m][n] + newVisit[m][n] ;
-     }
-     
-     }
-     */
     
 }
 
@@ -674,9 +406,9 @@ int PowerLawExponent ()
     
     // alfa and a must be integer, if you want to change them to a double variable you need to make some changes in the code
     int alfa = 0 ;
-    for (int n = 0; n<ny; n++)
+    for (int n = 0; n< tissueBacteria.ny; n++)
     {
-        for (int m = 0 ; m<nx; m++)
+        for (int m = 0 ; m < tissueBacteria.nx; m++)
         {
             if(visit[m][n] > maxValue ) maxValue = visit[m][n];
             if(visit[m][n] < minValue ) minValue = visit[m][n];
@@ -687,9 +419,9 @@ int PowerLawExponent ()
     numOfClasses = (alfaMax - alfaMin +1 )  ;
     frequency.assign(numOfClasses, 0) ;
     
-    for (int n = 0; n<ny; n++)
+    for (int n = 0; n < tissueBacteria.ny; n++)
     {
-        for (int m = 0 ; m<nx; m++)
+        for (int m = 0 ; m < tissueBacteria.nx; m++)
         {   if(visit[m][n] == 0)
         {
             fNoVisit += 1 ;
@@ -709,5 +441,100 @@ int PowerLawExponent ()
     }
     
     return alfaMin ;
+}
+
+void InitializeMatrix ()
+{
+   for (int m=0; m < tissueBacteria.nx; m++)
+   {
+       for (int n=0; n < tissueBacteria.ny; n++)
+       {
+          tissueBacteria.slime[m][n] = tissueBacteria.s0  ;
+           surfaceCoverage[m][n] = 0 ;
+           visit[m][n] = 0 ;
+       }
+   }
+   
+   for (int i=0; i < tissueBacteria.nx; i++)
+   {
+       X[i]= i*dx ;
+   }
+   for (int j=0; j < tissueBacteria.ny; j++)
+   {
+       Y[j]= j * dy ;
+   }
+}
+
+void initializeSlurmConfig(int argc, char* argv[]) {
+   
+   // read configuration.
+   ConfigParser parser;
+   std::string configFileNameDefault = "./resources/bacteria_M.cfg";
+   globalConfigVars = parser.parseConfigFile(configFileNameDefault);
+   std::string configFileNameBaseL = "./resources/disc_";
+   std::string configFileNameBaseR = ".cfg";
+
+   // Unknown number of input arguments.
+   if (argc != 1 && argc != 3) {
+      std::cout << "ERROR: Incorrect input argument count.\n"
+            << "Expect either no command line argument or three arguments"
+            << std::endl;
+      exit(0);
+   }
+   // one input argument. It has to be "-slurm".
+   else if (argc == 3) {
+      if (strcmp(argv[1], "-slurm") != 0) {
+         std::cout
+               << "ERROR: one argument received from commandline but it's not recognized.\n"
+               << "Currently, the argument value must be -slurm"
+               << std::endl;
+         exit(0);
+      } else {
+         std::string configFileNameM(argv[2]);
+         std::string configFileNameCombined = configFileNameBaseL
+               + configFileNameM + configFileNameBaseR;
+         parser.updateConfigFile(globalConfigVars, configFileNameCombined);
+      }
+   }
+   // no input argument. Take default.
+}
+
+void Update_SurfaceCoverage (ofstream ProteinLevelFile ,ofstream FrequencyOfVisit )
+{
+   string NumberOfVisits = tissueBacteria.statsFolder + "NumberOfVisits"+ to_string(index1)+ ".txt" ;
+   ofstream NumberOfVisit;
+   NumberOfVisit.open(NumberOfVisits.c_str());
+   SurfaceCoverage() ;
+   VisitsPerGrid() ;
+   int alfaMin = PowerLawExponent() ;
+   
+   for (int m=0; m< nx; m++)
+   {
+   for (int n=0 ; n < ny ; n++)
+   {
+   NumberOfVisit<< visit[m][n]<<'\t' ;
+   }
+   NumberOfVisit<<endl ;
+   }
+   NumberOfVisit<<endl<<endl ;
+   NumberOfVisit.close() ;
+   
+   for (int i=0; i<nbacteria; i++)
+   {
+   ProteinLevelFile<<tissueBacteria.bacteria[i].protein<<"," ;
+   }
+   ProteinLevelFile<< endl<<endl ;
+   FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
+   FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
+   FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
+   FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
+   FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
+   
+   for (int i=0 ; i<numOfClasses ; i++)
+   {
+   FrequencyOfVisit<< frequency[i]<<'\t' ;
+   }
+   FrequencyOfVisit<<endl<<endl ;
+  
 }
 

@@ -7,10 +7,10 @@ namespace constants
     extern const double pi;
 
     // Spatial Parameters
-    extern const double dx; 
+    //extern const double hyphaeLength; 
 
     // Extension Parameters
-    extern const double dTheta;
+    //extern const double extendingAngle;
 
 }
  

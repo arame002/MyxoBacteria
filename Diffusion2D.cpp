@@ -2,11 +2,9 @@
 
 
 
-//int main ()
-TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY ,vector<vector<double> > sources, vector<double> pSrc)
+TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX , int nGridY ,vector<vector<double> > sources, vector<double> pSrc, TissueGrid tissue)
 {
     vector<vector<double> > pointSource = sources ;
-    TissueGrid tissue ;
     tissue.DomainBoundaries(xMin, xMax, yMin, yMax, nGridX , nGridY) ;
     /*
     tissue.xSources.push_back(tissue.xDomainMax / 2.0) ;
@@ -22,7 +20,6 @@ TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int n
 
     
     return tissue ;
-    //return 0 ;
     
     
 }

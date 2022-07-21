@@ -27,6 +27,10 @@ public:
     vector<int> indexSourceX ;
     vector<int> indexSourceY ;
     
+    int machineID = 1  ;
+    string folderName = "./animation/machine" + to_string(machineID) + "/" ;
+    string statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
+    
     void DomainBoundaries (double xMin, double xMax, double yMin, double yMax, int nGridX , int nGridY) ;
     void InitializeAllGrids () ;
     void ClearChanges () ;
@@ -38,6 +42,8 @@ public:
     void EulerMethod () ;
     void ParaViewGrids (int) ;
     void RoundToZero () ;
+    void UpdateTGridsFolderNames (int ) ;
+    void UpdateTGrid_FromConfigFile () ;
     
     
 };

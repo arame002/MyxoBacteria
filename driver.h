@@ -13,7 +13,7 @@
 #include "Fungi.hpp"
 
 
-Fungi driver () ;
+Fungi driver (Fungi fungi) ;
 
 
 #endif /* driver_h */
