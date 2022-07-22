@@ -61,7 +61,7 @@ double nAttachedPili = 0.0 ;
 //-----------------------------------------------------------------------------------------------------
 //simulation parameters
 
-int index1 = 0 ;                                     // needed for ParaView
+//int index1 = 0 ;                                     // needed for ParaView
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -85,6 +85,7 @@ int main (int argc, char* argv[])
     ofstream FrequencyOfVisit ;
     FrequencyOfVisit.open(tissueBacteria.statsFolder +"FrequncyOfVisit.txt") ;
     ofstream strSwitchP (tissueBacteria.statsFolder +"SwitchProbablities.txt" ) ;
+    ofstream trajectories ( tissueBacteria.statsFolder +"trajectories.txt") ;
     
     cout<<"program is running"<<endl  ;
    //--------------------------- Time controlling parameters ------------------------------------------
@@ -184,8 +185,8 @@ int main (int argc, char* argv[])
             if (l%inverseDt==0)
             {
                //Update_SurfaceCoverage(ProteinLevelFile, FrequencyOfVisit) ;
-               tissueBacteria.ParaView ()  ;
                ParaView2() ;
+               tissueBacteria.ParaView ()  ;
                tissueBacteria.WriteTrajectoryFile() ;
                cout<<(l-initialNt)/inverseDt<<endl ;
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
@@ -270,7 +271,11 @@ void PositionUpdating (double t)
 
 void ParaView2 ()
 {
-    int index = index1 ;
+    int index = tissueBacteria.index1 ;
+    if (index > 2)
+    {
+      return ;
+    }
     string vtkFileName2 = tissueBacteria.folderName + "Grid"+ to_string(index)+ ".vtk" ;
     ofstream SignalOut;
     SignalOut.open(vtkFileName2.c_str());
@@ -310,7 +315,6 @@ void ParaView2 ()
         }
     }
     
-    index1++ ;
 }
 
 
@@ -474,7 +478,7 @@ void initializeSlurmConfig(int argc, char* argv[]) {
    ConfigParser parser;
    std::string configFileNameDefault = "./resources/bacteria_M.cfg";
    globalConfigVars = parser.parseConfigFile(configFileNameDefault);
-   std::string configFileNameBaseL = "./resources/disc_";
+   std::string configFileNameBaseL = "./resources/test";
    std::string configFileNameBaseR = ".cfg";
 
    // Unknown number of input arguments.
@@ -504,7 +508,7 @@ void initializeSlurmConfig(int argc, char* argv[]) {
 
 void Update_SurfaceCoverage (ofstream ProteinLevelFile ,ofstream FrequencyOfVisit )
 {
-   string NumberOfVisits = tissueBacteria.statsFolder + "NumberOfVisits"+ to_string(index1)+ ".txt" ;
+   string NumberOfVisits = tissueBacteria.statsFolder + "NumberOfVisits"+ to_string(tissueBacteria.index1)+ ".txt" ;
    ofstream NumberOfVisit;
    NumberOfVisit.open(NumberOfVisits.c_str());
    SurfaceCoverage() ;
@@ -527,7 +531,7 @@ void Update_SurfaceCoverage (ofstream ProteinLevelFile ,ofstream FrequencyOfVisi
    ProteinLevelFile<<tissueBacteria.bacteria[i].protein<<"," ;
    }
    ProteinLevelFile<< endl<<endl ;
-   FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
+   FrequencyOfVisit<< "Results of frame "<< tissueBacteria.index1<<" are below : "<<endl ;
    FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
    FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
    FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;

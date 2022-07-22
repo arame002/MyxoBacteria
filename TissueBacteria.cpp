@@ -13,7 +13,6 @@ using constants::pi;
 TissueBacteria:: TissueBacteria()
 {
     slime.resize(nx,vector<double> (ny) ) ;
-    ofstream trajectories ( statsFolder +"trajectories.txt") ;
     sourceChemo.resize(2) ;
 }
 //-----------------------------------------------------------------------------------------------------
