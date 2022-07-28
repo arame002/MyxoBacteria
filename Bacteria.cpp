@@ -49,6 +49,7 @@ void bacterium::UpdateBacteria_FromConfigFile()
     maxWrapAngle = globalConfigVars.getConfigValue("wrap_maxAngle").toDouble() ;
     wrapSDV = globalConfigVars.getConfigValue("wrap_AngleSDV").toDouble() ;
     wrapMeanAngle = globalConfigVars.getConfigValue("wrap_MeanAngle").toDouble() ;
+    maxRunDuration = 1.0 / globalConfigVars.getConfigValue("Bacteria_reversalRate").toDouble() ;
     
 }
 
