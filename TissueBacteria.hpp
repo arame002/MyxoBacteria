@@ -19,7 +19,8 @@ enum InitialCondition
 {
     uniform = 0 ,
     circular = 1 ,
-    swarm = 2
+    swarm = 2 ,
+    center = 3
 };
 
 
@@ -49,6 +50,7 @@ public:
     double x0 = length/(nnode-1) ;                      // equilibrium distance of spring
     double lj_Energy = 0.0014 ;
     double lj_rMin = 0.6 ;
+    bool lj_Interaction = true ;
     
     double fmotor = (nnode) * 0.3/nnode ;                           //   Ft/(N-1)
     double motorEfficiency = 1.0 ;
@@ -105,6 +107,7 @@ public:
     void Initialization2 () ;
     void CircularInitialization () ;
     void SwarmingInitialization () ;
+    void CenterInitialization () ;
     void ljNodesPosition () ;
     void InitialReversalTime () ;
     vector<vector<double> > Cal_Diffusion2D (double xMin, double xMax, double yMin, double yMax,int nGridX, int nGridY ,vector<vector<double> > sources, vector<double> pSource) ;

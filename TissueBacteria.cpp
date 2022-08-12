@@ -46,6 +46,7 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     //Lennard-Jones interaction parameters
     lj_Energy = globalConfigVars.getConfigValue("ELJ").toDouble() ;
     lj_rMin = globalConfigVars.getConfigValue("rMinLJ").toDouble() ;
+    lj_Interaction = static_cast<bool>(globalConfigVars.getConfigValue("interactingLJ").toInt() ) ;
     
     //Bacteria motor parametes
     fmotor = globalConfigVars.getConfigValue("Bacteira_motorForce").toDouble() ;
@@ -102,6 +103,10 @@ void TissueBacteria::Bacteria_Initialization()
     else if (initialCondition == swarm)
     {
         SwarmingInitialization () ;
+    }
+    else if (initialCondition == center)
+    {
+        CenterInitialization() ;
     }
 }
 //-----------------------------------------------------------------------------------------------------
@@ -257,6 +262,34 @@ void TissueBacteria::SwarmingInitialization ()
     }
     
 }
+//-----------------------------------------------------------------------------------------------------
+void TissueBacteria::CenterInitialization()
+{
+    double raduis = 0.2 * sqrt(domainx * domainx  )/2.0 ;
+    double cntrX = domainx/2.0 ;
+    double cntrY = domainy/2.0 ;
+    
+    double a ;
+    double b ;
+    for (int i=0 , j=(nnode-1)/2 ; i<nbacteria; i++)
+    {
+        bacteria[i].nodes[j].x = cntrX + raduis * (2.0 * rand() / (RAND_MAX + 1.0) - 1.0 )  ;
+        bacteria[i].nodes[j].y = cntrY + raduis * (2.0 * rand() / (RAND_MAX + 1.0) - 1.0 ) ;
+        
+        a= gasdev(&idum) ;
+        b=gasdev(&idum) ;
+        a= a/ sqrt(a*a+b*b) ;
+        b = b/ sqrt(a*a+b*b) ;
+        for (int n=1; n<=(nnode-1)/2; n++)
+        {
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+        }
+    }
+}
+
 //-----------------------------------------------------------------------------------------------------
 void TissueBacteria::ljNodesPosition ()
 {
@@ -530,6 +563,11 @@ double TissueBacteria:: u_lj()
     double ulj=0.0 ;
     rcut2= 6.25 * sigma2  ;                 // rcut=2.5*sigma for Lenard-Jones potential
     double min ;
+    if (lj_Interaction == false)
+    {
+        return ulj ;
+    }
+    
     for (int i=0; i<(nbacteria -1); i++)
     {
         for (int j=i+1 ; j<nbacteria ; j++)
