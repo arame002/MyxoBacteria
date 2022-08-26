@@ -42,6 +42,12 @@ public:
     ChemotacticMechanism chemotacticMechanism = classic ;
     InitialCondition initialCondition = circular ;
     bool run_calibrated = 1 ;
+    double lognormal_run_m = 0.64 ;
+    double lognormal_run_s = 0.62 ;
+    double lognormal_run_a = 6.55 ;
+    double lognormal_wrap_m = -0.39 ;
+    double lognormal_wrap_s = 0.94 ;
+    double lognormal_wrap_a = 4.9 ;
 
     double length = 2 ;
     double B = 0.5 ;                      // bending constant
@@ -87,10 +93,11 @@ public:
     vector<double> sourceProduction ;
     bool sourceAlongHyphae = false ;
 
-    double turnPeriod = 0.2 ;
+    double turnPeriod = 0.1 ;
     double reversalRate = 1.0/ 5.0 ;         //0.025
     double minimumRunTime = 0.3 ;             //this has to be larger than turnPeriod and wrapDuration
-    double chemoStrength = 5000.0 ;
+    double chemoStrength_run = 5000.0 ;
+    double chemoStrength_wrap = 5000.0 ;
     double agarThicknessX = domainx/20 ;
     double agarThicknessY = domainy/20 ;
     
@@ -151,6 +158,8 @@ public:
     void Update_MotilityMetabolism (double tmpDt) ;
     void WriteSwitchProbabilities () ;
     void Update_MM_Legand () ;
+    
+    void WriteBacteria_AllStats () ;
 
     
 };

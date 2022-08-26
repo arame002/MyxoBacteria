@@ -59,6 +59,9 @@ class bacterium
     vector<pilus> pili ;
     double orientation ;
     vector<vector<double> > chemoPointSources ;
+    double locVelocity ;
+    double locFriction ;
+    
     
     bool turnStatus = false ;
     double turnTime = 0.0 ;
@@ -89,6 +92,7 @@ class bacterium
     MotilityMetabolism motilityMetabolism ;
     void initialize_randomForce () ;
     void UpdateBacteria_FromConfigFile() ;
+    double LogNormalMaxRunDuration (double m, double s, double a) ;
     bacterium () ;
 };
 

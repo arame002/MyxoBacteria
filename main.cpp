@@ -193,6 +193,7 @@ int main (int argc, char* argv[])
                tissueBacteria.ParaView ()  ;
                tissueBacteria.WriteTrajectoryFile() ;
                cout<<(l-initialNt)/inverseDt<<endl ;
+               tissueBacteria.WriteBacteria_AllStats() ;
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 //    cout << coveragePercentage <<endl ;
                
@@ -263,6 +264,12 @@ void PositionUpdating (double t)
                    tissueBacteria.bacteria[i].nodes[j].y += t * (tissueBacteria.bacteria[i].pili[m].fy) * etaInverse ;
                 }
             }
+           
+           if (j== (nnode -1)/2 )
+           {
+              tissueBacteria.bacteria[i].locVelocity = etaInverse * sqrt(totalForceX * totalForceX + totalForceY * totalForceY) ;
+              tissueBacteria.bacteria[i].locFriction = 1.0 / etaInverse ;
+           }
             
         }
     }

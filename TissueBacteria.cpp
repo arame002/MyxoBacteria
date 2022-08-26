@@ -58,7 +58,9 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     turnPeriod = globalConfigVars.getConfigValue("Bacteria_turnPeriod").toDouble() ;
     minimumRunTime = globalConfigVars.getConfigValue("Bacteria_minRunTime").toDouble() ;
     reversalRate = globalConfigVars.getConfigValue("Bacteria_reversalRate").toDouble() ;
-    chemoStrength = globalConfigVars.getConfigValue("Bacteria_chemotaxisSensitivity").toDouble() ;
+    chemoStrength_run = globalConfigVars.getConfigValue("Bacteria_chemotaxisSensitivity_run").toDouble() ;
+    chemoStrength_wrap = globalConfigVars.getConfigValue("Bacteria_chemotaxisSensitivity_wrap").toDouble() ;
+    
     
     //Medium related parameters
     kblz = globalConfigVars.getConfigValue("Kb").toDouble() ;
@@ -1165,6 +1167,7 @@ void TissueBacteria:: ReversalTime()
                     bacteria[i].turnTime = 0.0 ;
                     
                     bacteria[i].wrapMode = true ;
+                    bacteria[i].wrapDuration = bacteria[i].LogNormalMaxRunDuration(lognormal_wrap_m, lognormal_wrap_s, lognormal_wrap_a) ;
                   //  bacteria[i].wrapAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxWrapAngle ;
                     
                     std::default_random_engine generator ;
@@ -1182,6 +1185,7 @@ void TissueBacteria:: ReversalTime()
                     bacteria[i].wrapTime = 0.0 ;
                     bacteria[i].wrapAngle = 0.0 ;
                      */
+                    bacteria[i].reversalPeriod = bacteria[i].LogNormalMaxRunDuration(lognormal_run_m, lognormal_run_s, lognormal_run_a) ;
                     Reverse(i) ;
                 }
             }
@@ -1192,6 +1196,7 @@ void TissueBacteria:: ReversalTime()
                 bacteria[i].wrapAngle = 0.0 ;
                 
                 bacteria[i].reversalTime  = 0.0 ;
+                bacteria[i].reversalPeriod = bacteria[i].LogNormalMaxRunDuration(lognormal_run_m, lognormal_run_s, lognormal_run_a) ;
                 Reverse(i) ;
                 
             }
@@ -1218,6 +1223,7 @@ void TissueBacteria:: ReversalTime()
                     bacteria[i].turnTime = 0.0 ;
                     
                     bacteria[i].wrapMode = true ;
+                    bacteria[i].wrapDuration = bacteria[i].LogNormalMaxRunDuration(lognormal_wrap_m, lognormal_wrap_s, lognormal_wrap_a) ;
                   //  bacteria[i].wrapAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxWrapAngle ;
                     
                     std::default_random_engine generator ;
@@ -1235,6 +1241,7 @@ void TissueBacteria:: ReversalTime()
                     bacteria[i].wrapTime = 0.0 ;
                     bacteria[i].wrapAngle = 0.0 ;
                      */
+                    bacteria[i].reversalPeriod = bacteria[i].LogNormalMaxRunDuration(lognormal_run_m, lognormal_run_s, lognormal_run_a) ;
                     Reverse(i) ;
                     bacteria[i].motilityMetabolism.switchMode = false ;
                 }
@@ -1246,6 +1253,7 @@ void TissueBacteria:: ReversalTime()
                 bacteria[i].wrapAngle = 0.0 ;
                 
                 bacteria[i].reversalTime  = 0.0 ;
+                bacteria[i].reversalPeriod = bacteria[i].LogNormalMaxRunDuration(lognormal_run_m, lognormal_run_s, lognormal_run_a) ;
                 Reverse(i) ;
                 bacteria[i].motilityMetabolism.switchMode = false ;
                 
@@ -1609,6 +1617,11 @@ void TissueBacteria:: UpdateReversalFrequency ()
     for (int i=0; i< nbacteria ; i++)
     {
         double ds = Cal_ChemoGradient2(i) ;
+        double tmpChemoStrength = chemoStrength_run ;
+        if (bacteria[i].wrapMode)
+        {
+            tmpChemoStrength = chemoStrength_wrap ;
+        }
         /*
         if (i=0)
         {
@@ -1626,11 +1639,18 @@ void TissueBacteria:: UpdateReversalFrequency ()
             }
              */
             //optimistic
-            //double tmpPeriod = 1.0 /( reversalRate * exp(chemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+            //double tmpPeriod = 1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
             //bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
             //pessimistic
             //bacteria[i].reversalPeriod = 1.0/ reversalRate ;      //constant run durations
-            bacteria[i].reversalPeriod = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+            if (bacteria[i].wrapMode == false)
+            {
+                bacteria[i].reversalPeriod = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+            }
+            else
+            {
+                bacteria[i].wrapDuration = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+            }
             
         }
         else
@@ -1639,10 +1659,18 @@ void TissueBacteria:: UpdateReversalFrequency ()
             //bacteria[i].reversalPeriod = 1.0/ reversalRate ;
             
             //pessimistic
-            //double tmpPeriod =1.0 /( reversalRate * exp(chemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
-            double tmpPeriod =  bacteria[i].maxRunDuration /( exp(chemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+            //double tmpPeriod =1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
+            double tmpPeriod =  bacteria[i].maxRunDuration /( exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
             //test
-            bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
+            if (bacteria[i].wrapMode == false)
+            {
+                bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
+            }
+            else
+            {
+                bacteria[i].wrapDuration = max(tmpPeriod, minimumRunTime ) ;
+            }
+            
         }
     }
     
@@ -1691,7 +1719,7 @@ void TissueBacteria:: WriteNumberReverse ()
     ofstream histogramReversal (statsFolder + "HistogramReversal.txt") ;
     for (int i = 0; i < nbacteria ; i++)
     {
-        histogramReversal << bacteria[i].numberReverse << '\t' << bacteria[i].timeToSource << '\t'<<bacteria[i].timeInSource<<'\t'<<bacteria[i].sourceWithin<<'\t'<< bacteria[i].maxRunDuration << endl ;
+        histogramReversal << i << '\t' << bacteria[i].numberReverse << '\t' << bacteria[i].timeToSource << '\t'<<bacteria[i].timeInSource<<'\t'<<bacteria[i].sourceWithin<<'\t'<< bacteria[i].maxRunDuration << endl ;
     }
 }
 
@@ -1874,13 +1902,25 @@ void TissueBacteria::Pass_PointSources_To_Bacteria(vector<vector<double> > sourc
 
 void TissueBacteria::Update_BacteriaMaxDuration()
 {
-    double lambda = 1.6 ;
-    std::default_random_engine generator;
-    std::exponential_distribution<double> distribution(lambda);
     for (int i=0; i<nbacteria; i++)
     {
-        bacteria[i].maxRunDuration = /* 1.0 / reversalRate * */ distribution(generator) ;
+        bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(lognormal_run_m, lognormal_run_s, lognormal_run_a) ;
         
     }
 }
 
+void TissueBacteria::WriteBacteria_AllStats()
+{
+    int index = index1 ;
+    string statFileName = folderName + animationName + to_string(index)+ ".txt" ;
+    ofstream stat;
+    stat.open(statFileName.c_str());
+    for (uint i = 0 ; i< nbacteria; i++)
+    {
+        stat<< bacteria[i].nodes[(nnode-1)/2].x <<'\t'<< bacteria[i].nodes[(nnode-1)/2].y
+        <<bacteria[i].locVelocity << '\t' << bacteria[i].locFriction << '\t' << Cal_OrientationBacteria(i) << '\t' << bacteria[i].oldChem  ;
+        
+        stat<<endl ;
+    }
+    stat.close() ;
+}
