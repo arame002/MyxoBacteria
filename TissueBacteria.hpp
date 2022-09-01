@@ -42,12 +42,16 @@ public:
     ChemotacticMechanism chemotacticMechanism = classic ;
     InitialCondition initialCondition = circular ;
     bool run_calibrated = 1 ;
-    double lognormal_run_m = 0.64 ;
-    double lognormal_run_s = 0.62 ;
-    double lognormal_run_a = 6.55 ;
-    double lognormal_wrap_m = -0.39 ;
-    double lognormal_wrap_s = 0.94 ;
-    double lognormal_wrap_a = 4.9 ;
+    double lognormal_run_m = 0.7 ;
+    double lognormal_run_s = 0.6 ;
+    double lognormal_run_a = 1.0 ;
+    double lognormal_wrap_m = -0.4 ;
+    double lognormal_wrap_s = 0.9 ;
+    double lognormal_wrap_a = 1.0 ;
+    std::default_random_engine run_seed ;
+    std::default_random_engine wrap_seed ;
+    std::lognormal_distribution<double> run_distribution ;
+    std::lognormal_distribution<double> wrap_distribution ;
 
     double length = 2 ;
     double B = 0.5 ;                      // bending constant
@@ -160,6 +164,7 @@ public:
     void Update_MM_Legand () ;
     
     void WriteBacteria_AllStats () ;
+    void LogLinear_RNG () ;
 
     
 };

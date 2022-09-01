@@ -106,6 +106,8 @@ int main (int argc, char* argv[])
    tissueBacteria.Bacteria_Initialization() ;
    tissueBacteria.ljNodesPosition() ;
    tissueBacteria.InitialProtein() ;
+   tissueBacteria.LogLinear_RNG() ;
+   tissueBacteria.Update_BacteriaMaxDuration() ;
    tissueBacteria.InitialReversalTime() ;
    InitialPili () ;
    InitializeMatrix() ;
@@ -139,11 +141,6 @@ int main (int argc, char* argv[])
    
    tissueBacteria.gridInMain = tissueBacteria.Cal_Diffusion2D(0.0, domainx, 0.0, domainy ,tissueBacteria.nx , tissueBacteria.ny ,pointSources, tissueBacteria.sourceProduction ) ;
    tissueBacteria.Pass_PointSources_To_Bacteria(pointSources) ;
-   
-   if (tissueBacteria.run_calibrated)
-   {
-      tissueBacteria.Update_BacteriaMaxDuration() ;
-   }
    
    //tissueBacteria.WriteNumberReverse() ;
    

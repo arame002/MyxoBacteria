@@ -82,6 +82,7 @@ class bacterium
     double wrapDuration = 1.0 ;
     double wrapTime = 0.0 ;
     double wrapAngle = 0.0 ;
+    double wrapRate = 1.0 ;
     double wrapAngularVelocity ;
     double wrapProbability = 1.0 ;
     double wrapSlowDown = 15.0/35.0 ;
@@ -92,7 +93,7 @@ class bacterium
     MotilityMetabolism motilityMetabolism ;
     void initialize_randomForce () ;
     void UpdateBacteria_FromConfigFile() ;
-    double LogNormalMaxRunDuration (double m, double s, double a) ;
+    double LogNormalMaxRunDuration (std::lognormal_distribution<double> &dist, std::default_random_engine &generator , double a, bool calib, double runVal) ;
     bacterium () ;
 };
 

@@ -116,12 +116,19 @@ void MotilityMetabolism::UpdateMotility_FromConfigFile()
     
 }
 
-double bacterium::LogNormalMaxRunDuration(double m, double s, double a)
+double bacterium::LogNormalMaxRunDuration(std::lognormal_distribution<double> &dist, std::default_random_engine &generator , double a, bool calib, double runVal)
 {
-    std::default_random_engine generator;
-      std::gamma_distribution<double> distribution(m,s);
-    
+ 
+    if (calib == true)
+    {
+        
     //maxRunDuration =  1.0 / reversalRate * distribution(generator) ;
-    maxRunDuration = 1.0/ a * distribution(generator) ;
+    maxRunDuration = 1.0/ a * dist(generator) ;
     return maxRunDuration ;
+    }
+    else
+    {
+        maxRunDuration = runVal ;
+        return maxRunDuration ;
+    }
 }
