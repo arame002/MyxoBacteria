@@ -1108,11 +1108,11 @@ void TissueBacteria:: Reverse (int i)
         //cout<< i<<" is attached to fungi "<<endl;
         //test attachtoFungi=false
         bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;
-        
+        /*
         std::default_random_engine generator ;
         std::normal_distribution<double> distribution( 0.0, bacteria[i].turnSDV ) ;
         bacteria[i].turnAngle = distribution(generator);
-         
+         */
     }
     
     //bacteria[i].turnAngle =  bacteria[i].maxTurnAngle ;
