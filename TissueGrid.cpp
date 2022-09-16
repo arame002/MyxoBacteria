@@ -144,13 +144,13 @@ void TissueGrid::EulerMethod()
 {
     int l = 0 ;
     bool status = false ;
-    while (status == false && l< 10000)
+    while (status == false && l< 10000) //10000
     {
         status = true ;
         double smallValue = 0.0001 ;
         ClearChanges() ;
         DiffusionChanges() ;
-        DegredationChanges() ;
+        //DegredationChanges() ;
         ProductionChanges() ;
         for (int i=0; i< numberGridsY ; i++)
         {
@@ -248,8 +248,8 @@ void TissueGrid::UpdateTGrid_FromConfigFile()
 {
     folderName = globalConfigVars.getConfigValue("AnimationFolder").toString() ;
     statsFolder = globalConfigVars.getConfigValue("StatFolderName").toString() ;
-   // numberGridsX = globalConfigVars.getConfigValue("grid_NumberX").toDouble() ;
-   // numberGridsY = globalConfigVars.getConfigValue("grid_NumberY").toDouble() ;
+    numberGridsX = globalConfigVars.getConfigValue("grid_NumberX").toDouble() ;
+    numberGridsY = globalConfigVars.getConfigValue("grid_NumberY").toDouble() ;
     Diffusion = globalConfigVars.getConfigValue("grid_DiffusionCoeff").toDouble() ;
     deg = globalConfigVars.getConfigValue("grid_degradationRate").toDouble() ;
     pro = globalConfigVars.getConfigValue("grid_productionRate").toDouble() ;

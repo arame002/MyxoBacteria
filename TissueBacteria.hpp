@@ -72,10 +72,14 @@ public:
     
     int shiftx = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
     int shifty = 0 ;        //this value changes in the MinDistance function, call MinDistance before using this value
-    const double dx= 0.5 ;
-    const double dy= 0.5 ;
-    const int nx = static_cast<int>(domainx/dx) ;               //number of grids in X-axis
-    const int ny = static_cast<int> (domainy/dy) ;              //number of grids in Y-axis
+    
+    double domainx = 1000.0 ;
+    double domainy = 1000.0 ;
+    double dx= 0.5 ;
+    double dy= 0.5 ;
+    int nx = static_cast<int>(domainx/dx) ;               //number of grids in X-axis
+    int ny = static_cast<int> (domainy/dy) ;              //number of grids in Y-axis
+    int nz = 1 ;
     
     double diffusion ;
     double initialTime = 4.0 ;
@@ -107,6 +111,13 @@ public:
     
     
     double kblz=1.0 , temp=1.0 , eta1 = 0.02 , eta2 = 4.0 ;
+    
+    vector<double> X ;
+    vector<double> Y ;
+    vector<double> Z ;
+    vector<vector<int> > visit ;
+    vector<vector<int> > surfaceCoverage ;
+    double coveragePercentage = 0 ;
     
 
     TissueBacteria () ;

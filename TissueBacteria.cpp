@@ -14,6 +14,11 @@ TissueBacteria:: TissueBacteria()
 {
     slime.resize(nx,vector<double> (ny) ) ;
     sourceChemo.resize(2) ;
+    X.resize(nx) ;
+    Y.resize(ny) ;
+    Z.push_back(0.0) ;
+    visit.resize(nx, vector<int> (ny, 0.0) ) ;
+    surfaceCoverage.resize(nx, vector<int> (ny, 0.0) ) ;
 }
 //-----------------------------------------------------------------------------------------------------
 void TissueBacteria::Initialze_AllRandomForce()
@@ -65,6 +70,10 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     //Medium related parameters
     kblz = globalConfigVars.getConfigValue("Kb").toDouble() ;
     temp = globalConfigVars.getConfigValue("temperature").toDouble() ;
+    domainx =   globalConfigVars.getConfigValue("DOMAIN_XMAX").toDouble() -
+                globalConfigVars.getConfigValue("DOMAIN_XMIN").toDouble() ;
+    domainy =   globalConfigVars.getConfigValue("DOMAIN_YMAX").toDouble() -
+                globalConfigVars.getConfigValue("DOMAIN_YMIN").toDouble() ;
     eta1 = globalConfigVars.getConfigValue("damping1").toDouble() ;
     eta2 = globalConfigVars.getConfigValue("damping2").toDouble() ;
     agarThicknessX = domainx * globalConfigVars.getConfigValue("boundary_agarThicknessX_Coeff").toDouble() ;
@@ -1096,10 +1105,12 @@ void TissueBacteria:: Reverse (int i)
         bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxTurnAngle ;
         //test turnAngle
         //bacteria[i].turnAngle = 0.0 ;
-        
+        /*
         std::default_random_engine generator ;
         std::normal_distribution<double> distribution( 0.0, bacteria[i].turnSDV  ) ;
         bacteria[i].turnAngle = distribution(generator);
+         */
+        //cout<< "turning angle for "<<i<<"th bacteria is: "<<bacteria[i].turnAngle << endl ;
         
     }
     else
@@ -1691,9 +1702,9 @@ double TissueBacteria:: Cal_ChemoGradient2 (int i)
 {
     double c0 = 1.0 ;   //amplitude of chemical
     // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
-    int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + 10.0 * domainx,domainx ) / dx ), nx) ) ; //0.5 is grid size, need to change it as a variable
-    int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + 10.0 * domainy,domainy ) / dy ), ny )) ;
-    if (tmpXIndex < 0 || tmpXIndex > nx-1 || tmpYIndex < 0 || tmpYIndex > ny -1)
+    int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + 10.0 * domainx, domainx ) / tGrids.grid_dx ), tGrids.numberGridsX) ) ;
+    int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + 10.0 * domainy, domainy ) / tGrids.grid_dx ), tGrids.numberGridsX )) ;
+    if (tmpXIndex < 0 || tmpXIndex > tGrids.numberGridsX - 1 || tmpYIndex < 0 || tmpYIndex > tGrids.numberGridsY - 1)
     {
         cout <<"Cal_ChemoGradient, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
     }
@@ -1878,11 +1889,11 @@ void TissueBacteria::Update_MM_Legand()
 {
     for (int i = 0; i< nbacteria; i++)
     {
-        int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + 10.0 * domainx,domainx ) / dx ), nx) ) ; //0.5 is grid size, need to change it as a variable
-        int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + 10.0 * domainy,domainy ) / dy ), ny )) ;
-        if (tmpXIndex < 0 || tmpXIndex > nx-1 || tmpYIndex < 0 || tmpYIndex > ny -1)
+        int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + 10.0 * domainx, domainx ) / tGrids.grid_dx ), tGrids.numberGridsX) ) ;
+        int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + 10.0 * domainy, domainy ) / tGrids.grid_dy ), tGrids.numberGridsY )) ;
+        if (tmpXIndex < 0 || tmpXIndex > tGrids.numberGridsX - 1 || tmpYIndex < 0 || tmpYIndex > tGrids.numberGridsY - 1)
         {
-            cout <<"Cal_ChemoGradient, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
+            cout <<"Cal_ChemoGradient, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl<<flush ;
         }
         double s = gridInMain.at(tmpYIndex).at(tmpXIndex) ;
         bacteria[i].motilityMetabolism.legand = 1.0 * s ;

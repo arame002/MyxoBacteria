@@ -29,8 +29,8 @@ public:
     double hyphaeWidth = 6.0 ;
     double production = pow(10, 2) ;
     double proDecayFactor = 0.5 ;
-    double initX = 90.0 ;
-    double initY = 50 ;
+    double initX = 540.0 ;
+    double initY = 500 ;
     int init_Count = 1 ;
     
     int machineID = 1 ;
