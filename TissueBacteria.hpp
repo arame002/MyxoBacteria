@@ -167,6 +167,7 @@ public:
     void WriteTrajectoryFile () ;
     void WriteNumberReverse () ;
     void SlimeTraceHyphae (Fungi tmpFng) ;
+    void SlimeTraceHyphae2 (Fungi tmpFng) ;         // bacteria follows the surrounding. Incompelete
     vector<vector<double> > GridSources () ;
     void Pass_PointSources_To_Bacteria (vector<vector<double> > sourceP) ;
     

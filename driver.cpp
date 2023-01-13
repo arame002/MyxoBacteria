@@ -14,6 +14,7 @@ Fungi driver (Fungi fungi){
     //   Set Up Static Mycelia
     // ---------------------------------------------------
     // Initialize starting parameters
+    fungi.UpdateFungi_FromConfigFile() ;
     double init_hyphae_count = fungi.init_Count;   // Number of initial hyphae segments
     
     //vector<HyphaeSegment> fungi.hyphaeSegments;       // Vector of classes where hyphae info is stored

@@ -43,6 +43,7 @@ void bacterium::UpdateBacteria_FromConfigFile()
     
     maxTurnAngle = globalConfigVars.getConfigValue("Bacteria_maxTurnAngle").toDouble() ;
     turnSDV = globalConfigVars.getConfigValue("Bacteria_TurnSDV").toDouble() ;
+    chemotaxisPeriod = globalConfigVars.getConfigValue("Bacteria_chemotaxisPeriod").toDouble() ;
     wrapDuration = globalConfigVars.getConfigValue("wrap_duration").toDouble() ;
     wrapProbability = globalConfigVars.getConfigValue("wrap_probability").toDouble() ;
     wrapSlowDown = globalConfigVars.getConfigValue("wrap_slowDown").toDouble() ;

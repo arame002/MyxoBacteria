@@ -19,7 +19,7 @@ public:
     double b = 6.0 ;
     double gamma = 0.5 ;
     double switchProbability ;
-    double legand = 20.0 ;
+    double legand = 20.0 ;              //This is going to be relaced by gridInMain
     double methylation  = 0.93 ;
     double km = 1.7 ;
     double kI = 18.2 ;       //18.2 or 1.0
@@ -68,6 +68,10 @@ class bacterium
     double turnAngle = 0.0 ;        //the overall turn angle depends on fmotor, turnTime and chosen angle
     double maxTurnAngle = (3.1415)/5.0 ;
     double turnSDV = 3.1415/6.0 * (1.0/3.0) / ( (10.0 * 1.0) * 0.3 ) ;
+    
+    double chemotaxisPeriod = 0.1 ;             //How often the bacteria responds to the chemo-gradient
+    double chemotaxisTime = 0.0 ;
+    
     vector<double> oldLoc ;
     double oldChem = 0.0 ;
     int numberReverse = 0 ;

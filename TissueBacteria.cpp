@@ -791,7 +791,9 @@ void TissueBacteria:: Diffusion (double x , double y)
         }
         else
         {
-            diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+            //diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+            diffusion = kblz * temp/ eta1 ;
+            motorEfficiency = motorEfficiency_Liquid ;
         }
     }
 }
@@ -1118,7 +1120,7 @@ void TissueBacteria:: Reverse (int i)
         bacteria[i].turnAngle = 0.0 ;
         //cout<< i<<" is attached to fungi "<<endl;
         //test attachtoFungi=false
-        bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;
+        //bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;
         /*
         std::default_random_engine generator ;
         std::normal_distribution<double> distribution( 0.0, bacteria[i].turnSDV ) ;
@@ -1625,63 +1627,73 @@ double TissueBacteria:: Cal_OrientationBacteria (int i)
 
 void TissueBacteria:: UpdateReversalFrequency ()
 {
+   
     for (int i=0; i< nbacteria ; i++)
     {
-        double ds = Cal_ChemoGradient2(i) ;
-        double tmpChemoStrength = chemoStrength_run ;
-        if (bacteria[i].wrapMode)
+        if (bacteria[i].chemotaxisTime < bacteria[i].chemotaxisPeriod )
         {
-            tmpChemoStrength = chemoStrength_wrap ;
-        }
-        /*
-        if (i=0)
-        {
-            cout<< ds<<endl ;
-        }
-         */
-        Cal_OrientationBacteria(i) ;
-        if (ds >= 0.0)
-        {
-            double preferedAngle = atan2(bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0, bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0) ;
-            /*
-            if (cos(bacteria[i].orientation - preferedAngle) < 0.0  )
-            {
-                //cout<< i<< '\t'<< bacteria[i].orientation<< '\t'<< preferedAngle<<'\t'<<cos(bacteria[i].orientation - preferedAngle)<<endl ;
-            }
-             */
-            //optimistic
-            //double tmpPeriod = 1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
-            //bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
-            //pessimistic
-            //bacteria[i].reversalPeriod = 1.0/ reversalRate ;      //constant run durations
-            if (bacteria[i].wrapMode == false)
-            {
-                bacteria[i].reversalPeriod = max(bacteria[i].maxRunDuration, minimumRunTime) ;
-            }
-            else
-            {
-                bacteria[i].wrapDuration = max(bacteria[i].maxRunDuration, minimumRunTime) ;
-            }
-            
+            bacteria[i].chemotaxisTime += 0.1 ;
+            continue ;
         }
         else
         {
-            //optimistic
-            //bacteria[i].reversalPeriod = 1.0/ reversalRate ;
-            
-            //pessimistic
-            //double tmpPeriod =1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
-            double tmpPeriod =  bacteria[i].maxRunDuration /( exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
-            //test
-            if (bacteria[i].wrapMode == false)
+            bacteria[i].chemotaxisTime = 0.0 ;
+            double ds = Cal_ChemoGradient2(i) ;
+            double tmpChemoStrength = chemoStrength_run ;
+            if (bacteria[i].wrapMode)
             {
-                bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
+                tmpChemoStrength = chemoStrength_wrap ;
+            }
+            /*
+             if (i=0)
+             {
+             cout<< ds<<endl ;
+             }
+             */
+            Cal_OrientationBacteria(i) ;
+            if (ds >= 0.0)
+            {
+                double preferedAngle = atan2(bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0, bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0) ;
+                /*
+                 if (cos(bacteria[i].orientation - preferedAngle) < 0.0  )
+                 {
+                 //cout<< i<< '\t'<< bacteria[i].orientation<< '\t'<< preferedAngle<<'\t'<<cos(bacteria[i].orientation - preferedAngle)<<endl ;
+                 }
+                 */
+                //optimistic
+                //double tmpPeriod = 1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+                //bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
+                //pessimistic
+                //bacteria[i].reversalPeriod = 1.0/ reversalRate ;      //constant run durations
+                if (bacteria[i].wrapMode == false)
+                {
+                    bacteria[i].reversalPeriod = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+                }
+                else
+                {
+                    bacteria[i].wrapDuration = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+                }
+                
             }
             else
             {
-                bacteria[i].wrapDuration = max(tmpPeriod, minimumRunTime ) ;
+                //optimistic
+                //bacteria[i].reversalPeriod = 1.0/ reversalRate ;
+                
+                //pessimistic
+                //double tmpPeriod =1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
+                double tmpPeriod =  bacteria[i].maxRunDuration /( exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+                //test
+                if (bacteria[i].wrapMode == false)
+                {
+                    bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
+                }
+                else
+                {
+                    bacteria[i].wrapDuration = max(tmpPeriod, minimumRunTime ) ;
+                }
+                
             }
-            
         }
     }
     
@@ -1796,6 +1808,111 @@ void TissueBacteria:: SlimeTraceHyphae (Fungi tmpFng)
                     double decay = 2.0;
                     double tmpDis = 0.0 ;
                     slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH),slime[m][n]) ;
+                    
+                    /*
+                    for (int j=0; j<tmpFng.tips.at(0).size(); j++)
+                    {
+                        int id = tmpFng.tipsID.at(j) ;
+                        vec1x= tmpFng.hyphaeSegments.at(id).x2 - m*dx ;
+                        vec1y= tmpFng.hyphaeSegments.at(id).y2 - n*dy ;
+                        vec2x= tmpFng.hyphaeSegments.at(id).x2 - tmpFng.hyphaeSegments.at(id).x1 ;
+                        vec2y= tmpFng.hyphaeSegments.at(id).y2 - tmpFng.hyphaeSegments.at(id).y1 ;
+                        double tmplength = MagnitudeVec(vec2x, vec2y) ;
+                        double tmpAngle = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
+                        tmpDis = Dist2D(tmpFng.tips.at(0).at(j), tmpFng.tips.at(1).at(j), m * dx, n * dy) ;
+                        if (tmpAngle < pi/ 20.0 &&  tmpDis < tmplength   )
+                        {
+                            
+                        //slime[m][n] += exp(-tmpDis/ decay) ;
+                            slime [m][n] = max(s0 + s0* exp(-tmpH),slime[m][n]) ;
+                            
+                        }
+                     }
+                     */
+                }
+                if (tmpH < dx * tmpFng.hyphaeWidth/5.0 && tmpAngle1 < pi/2.0 && tmpAngle2 < pi/2.0 && sourceAlongHyphae== true )
+                {
+                    sourceChemo.at(0).push_back(m*dx) ;
+                    sourceChemo.at(1).push_back(n*dy) ;
+                    double tmpXtoX1 = Dist2D(tmpFng.hyphaeSegments.at(i).x1, tmpFng.hyphaeSegments.at(i).y1, m*dx, n*dy ) ;
+                    double pSource = tmpFng.hyphaeSegments.at(i).p1 + (tmpFng.hyphaeSegments.at(i).p2 - tmpFng.hyphaeSegments.at(i).p1)*(tmpXtoX1/tmpL) ;
+                    sourceProduction.push_back(pSource) ;
+                    
+                }
+    
+                
+            }
+            
+        }
+    }
+}
+
+
+
+void TissueBacteria:: SlimeTraceHyphae2 (Fungi tmpFng)
+{
+    int m = 0 ;
+    int n = 0 ;
+    double xMin;
+    double xMax ;
+    double yMin ;
+    double yMax ;
+    int mMin = 0 ;
+    int mMax= nx ;
+    int nMin = 0 ;
+    int nMax = ny ;
+    double tmpH ;
+    double tmpS ;
+    double tmpL ;
+    double vec1x , vec1y, vec2x , vec2y ;
+    
+    
+    for (uint i=0; i< tmpFng.hyphaeSegments.size(); i++)
+    {
+        xMin = min(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
+        xMax = max(tmpFng.hyphaeSegments.at(i).x1,tmpFng.hyphaeSegments.at(i).x2) ;
+        yMin = min(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
+        yMax = max(tmpFng.hyphaeSegments.at(i).y1,tmpFng.hyphaeSegments.at(i).y2) ;
+        mMin = (static_cast<int> (floor ( fmod (xMin + domainx , domainx) / dx ) ) ) % nx  ;
+        mMax = (static_cast<int> (ceil ( fmod (xMax + domainx , domainx) / dx ) ) ) % nx  ;
+        nMin = (static_cast<int> (floor ( fmod (yMin + domainy , domainy) / dy ) ) ) % ny  ;
+        nMax = (static_cast<int> (ceil ( fmod (yMax + domainy , domainy) / dy ) ) ) % ny  ;
+        int tmpNghbrhood = static_cast<int>( 1.5 * tmpFng.hyphaeWidth / dx) ;
+        mMin -= tmpNghbrhood ; mMax += tmpNghbrhood ; nMin -= tmpNghbrhood ; nMax += tmpNghbrhood;
+        
+        tmpL = Dist2D(tmpFng.hyphaeSegments.at(i).x1, tmpFng.hyphaeSegments.at(i).y1, tmpFng.hyphaeSegments.at(i).x2, tmpFng.hyphaeSegments.at(i).y2) ;
+        
+        for (int m = mMin ; m <= mMax ; m++)
+            
+        {
+            for (int n = nMin; n <= nMax; n++)
+            {
+                vec1x = tmpFng.hyphaeSegments.at(i).x1 - m * dx ;
+                vec1y = tmpFng.hyphaeSegments.at(i).y1 - n * dy ;
+                vec2x = tmpFng.hyphaeSegments.at(i).x2 - m * dx ;
+                vec2y = tmpFng.hyphaeSegments.at(i).y2 - n * dy ;
+                tmpS = TriangleArea(vec1x, vec1y, vec2x, vec2y) ;
+                // 0.5 * h * l  = S
+                tmpH = 2.0 * tmpS / tmpL ;
+                
+                vec2x= tmpFng.hyphaeSegments.at(i).x1 - tmpFng.hyphaeSegments.at(i).x2 ;
+                vec2y= tmpFng.hyphaeSegments.at(i).y1 - tmpFng.hyphaeSegments.at(i).y2 ;
+                double tmpAngle1 = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
+                
+                vec1x = tmpFng.hyphaeSegments.at(i).x2 - m * dx ;
+                vec1y = tmpFng.hyphaeSegments.at(i).y2 - n * dy;
+                vec2x *= -1.0 ;
+                vec2y *= -1.0 ;
+                
+                double tmpAngle2 = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
+                
+                if (tmpH < dx * tmpFng.hyphaeWidth && tmpAngle1 < pi/2.0 && tmpAngle2 < pi/2.0 && tmpH > dx * tmpFng.hyphaeWidth / 2.0  )
+                {
+                    //simple hypha
+                    double decay = 2.0;
+                    double tmpDis = 0.0 ;
+                    slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH/tmpFng.hyphaeWidth ),slime[m][n]) ;
+                    //slime [m][n] = 5.0 * s0 ;
                     
                     /*
                     for (int j=0; j<tmpFng.tips.at(0).size(); j++)

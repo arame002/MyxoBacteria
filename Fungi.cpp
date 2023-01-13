@@ -10,7 +10,7 @@
 //end points and branches are tips
 Fungi::Fungi ()
 {
-    UpdateFungi_FromConfigFile() ;
+    //UpdateFungi_FromConfigFile() ;
 }
 
 
@@ -59,8 +59,11 @@ void Fungi::Find_Hyphae_Tips2()
         
         if (hyphaeSegments[i].can_extend == true && hyphaeSegments[i].can_branch == true )
         {
-            tips[0].push_back(hyphaeSegments[i].x2) ;
-            tips[1].push_back(hyphaeSegments[i].y2) ;
+            //test
+            //tips[0].push_back(hyphaeSegments[i].x2) ;
+            //tips[1].push_back(hyphaeSegments[i].y2) ;
+            tips[0].push_back(hyphaeSegments[i].x1) ;
+            tips[1].push_back(hyphaeSegments[i].y1) ;
             tipsID.push_back(i);
         }
     }
@@ -261,6 +264,7 @@ void Fungi::UpdateFungiFolderNames(int id)
     machineID = id ;
     folderName = "./animation/machine" + to_string(machineID) + "/" ;
     statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
+    UpdateFungi_FromConfigFile() ;
     
 }
 
