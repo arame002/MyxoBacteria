@@ -144,7 +144,7 @@ void TissueGrid::EulerMethod()
 {
     int l = 0 ;
     bool status = false ;
-    while (status == false && l< 10000) //10000
+    while (status == false && l< 100) //10000
     {
         status = true ;
         double smallValue = 0.0001 ;
