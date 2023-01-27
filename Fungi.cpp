@@ -59,11 +59,11 @@ void Fungi::Find_Hyphae_Tips2()
         
         if (hyphaeSegments[i].can_extend == true && hyphaeSegments[i].can_branch == true )
         {
-            //test
-            //tips[0].push_back(hyphaeSegments[i].x2) ;
-            //tips[1].push_back(hyphaeSegments[i].y2) ;
-            tips[0].push_back(hyphaeSegments[i].x1) ;
-            tips[1].push_back(hyphaeSegments[i].y1) ;
+            //for motion inLiquid tip is beginning of element, so we can have the source in the center of domain
+            tips[0].push_back(hyphaeSegments[i].x2) ;
+            tips[1].push_back(hyphaeSegments[i].y2) ;
+            //tips[0].push_back(hyphaeSegments[i].x1) ;
+            //tips[1].push_back(hyphaeSegments[i].y1) ;
             tipsID.push_back(i);
         }
     }

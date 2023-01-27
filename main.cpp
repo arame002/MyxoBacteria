@@ -44,7 +44,6 @@ TissueBacteria tissueBacteria ;
 vector<double> frequency ;
 int numOfClasses = 1 ;
 int fNoVisit = 0 ;
-//vector<vector<double> > gridInMain ;
 
 //-----------------------------------------------------------------------------------------------------
 //slime properties
@@ -120,7 +119,7 @@ int main (int argc, char* argv[])
    
    //Bacteria would try to follow hyphae as a highway
    tissueBacteria.sourceAlongHyphae = false ;
-   tissueBacteria.SlimeTraceHyphae(fungi) ;
+   tissueBacteria.SlimeTraceHyphae2(fungi) ;
    
    vector<vector<double> > pointSources ;
    

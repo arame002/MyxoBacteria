@@ -791,9 +791,9 @@ void TissueBacteria:: Diffusion (double x , double y)
         }
         else
         {
-            //diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
-            diffusion = kblz * temp/ eta1 ;
-            motorEfficiency = motorEfficiency_Liquid ;
+            diffusion = kblz * temp/ (eta1/ slime[m][n] ) ;
+            //diffusion = kblz * temp/ eta1 ;
+            motorEfficiency = motorEfficiency_Agar ;
         }
     }
 }
@@ -1865,6 +1865,8 @@ void TissueBacteria:: SlimeTraceHyphae2 (Fungi tmpFng)
     double tmpS ;
     double tmpL ;
     double vec1x , vec1y, vec2x , vec2y ;
+    vector<vector<pair<bool, double>> > tmpHyphaeEdge ;
+    tmpHyphaeEdge.resize(nx, vector<pair<bool, double> > (ny, make_pair(true, s0) ) ) ;
     
     
     for (uint i=0; i< tmpFng.hyphaeSegments.size(); i++)
@@ -1906,35 +1908,23 @@ void TissueBacteria:: SlimeTraceHyphae2 (Fungi tmpFng)
                 
                 double tmpAngle2 = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
                 
-                if (tmpH < dx * tmpFng.hyphaeWidth && tmpAngle1 < pi/2.0 && tmpAngle2 < pi/2.0 && tmpH > dx * tmpFng.hyphaeWidth / 2.0  )
+                if (tmpH < dx * tmpFng.hyphaeWidth && tmpAngle1 < pi/2.0 && tmpAngle2 < pi/2.0 )
                 {
+                    if (tmpH < dx * tmpFng.hyphaeWidth / 2.0)
+                    {
+                        tmpHyphaeEdge[m][n].first = false ;
+                    }
+                    else
+                    {
+                        tmpHyphaeEdge[m][n].second = slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH/tmpFng.hyphaeWidth ),slime[m][n]) ;
+                    }
                     //simple hypha
-                    double decay = 2.0;
-                    double tmpDis = 0.0 ;
-                    slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH/tmpFng.hyphaeWidth ),slime[m][n]) ;
+                    //tmpHyphaeEdge[m][n] = false ;
+                    //slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH/tmpFng.hyphaeWidth ),slime[m][n]) ;
                     //slime [m][n] = 5.0 * s0 ;
                     
-                    /*
-                    for (int j=0; j<tmpFng.tips.at(0).size(); j++)
-                    {
-                        int id = tmpFng.tipsID.at(j) ;
-                        vec1x= tmpFng.hyphaeSegments.at(id).x2 - m*dx ;
-                        vec1y= tmpFng.hyphaeSegments.at(id).y2 - n*dy ;
-                        vec2x= tmpFng.hyphaeSegments.at(id).x2 - tmpFng.hyphaeSegments.at(id).x1 ;
-                        vec2y= tmpFng.hyphaeSegments.at(id).y2 - tmpFng.hyphaeSegments.at(id).y1 ;
-                        double tmplength = MagnitudeVec(vec2x, vec2y) ;
-                        double tmpAngle = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
-                        tmpDis = Dist2D(tmpFng.tips.at(0).at(j), tmpFng.tips.at(1).at(j), m * dx, n * dy) ;
-                        if (tmpAngle < pi/ 20.0 &&  tmpDis < tmplength   )
-                        {
-                            
-                        //slime[m][n] += exp(-tmpDis/ decay) ;
-                            slime [m][n] = max(s0 + s0* exp(-tmpH),slime[m][n]) ;
-                            
-                        }
-                     }
-                     */
                 }
+                
                 if (tmpH < dx * tmpFng.hyphaeWidth/5.0 && tmpAngle1 < pi/2.0 && tmpAngle2 < pi/2.0 && sourceAlongHyphae== true )
                 {
                     sourceChemo.at(0).push_back(m*dx) ;
@@ -1950,6 +1940,51 @@ void TissueBacteria:: SlimeTraceHyphae2 (Fungi tmpFng)
             
         }
     }
+    for (uint i=0 ; i< tmpFng.tips.at(0).size(); i++ )
+    {
+        xMin = tmpFng.tips.at(0).at(i) ;
+        yMin = tmpFng.tips.at(1).at(i) ;
+        
+        //xMin = tmpFng.hyphaeSegments.at(i).x2 ;
+        //yMin = tmpFng.hyphaeSegments.at(i).y2 ;
+        
+        mMin = (static_cast<int> (floor ( fmod (xMin - tmpFng.hyphaeWidth / 2.0  + domainx , domainx) / dx ) ) ) % nx  ;
+        mMax = (static_cast<int> (ceil ( fmod (xMin + tmpFng.hyphaeWidth / 2.0 + domainx , domainx) / dx ) ) ) % nx  ;
+        nMin = (static_cast<int> (floor ( fmod (yMin - tmpFng.hyphaeWidth / 2.0 + domainy , domainy) / dy ) ) ) % ny  ;
+        nMax = (static_cast<int> (ceil ( fmod (yMin + tmpFng.hyphaeWidth / 2.0 + domainy , domainy) / dy ) ) ) % ny  ;
+        for (int m = mMin ; m <= mMax ; m++)
+        {
+            for (int n = nMin; n <= nMax; n++)
+            {
+                tmpH = Dist2D(xMin, yMin, m * dx, n * dy) ;
+                if ( tmpH < 0.5 * tmpFng.hyphaeWidth / 2.0  )
+                {
+                    tmpHyphaeEdge[m][n].first = false ;
+                }
+                else if ( tmpH < tmpFng.hyphaeWidth / 2.0 )
+                {
+                    tmpHyphaeEdge[m][n].second = slime [m][n] = max(5.0*s0 + 5.0 *s0 * exp(-tmpH/tmpFng.hyphaeWidth ),slime[m][n]) ;
+                }
+            }
+        }
+        
+    }
+    
+    for (int i=0 ; i< tmpHyphaeEdge.size(); i++)
+    {
+        for (int j=0 ; j< tmpHyphaeEdge.at(i).size() ; j++)
+        {
+            if (tmpHyphaeEdge.at(i).at(j).first == true)
+            {
+                slime[i][j] = tmpHyphaeEdge.at(i).at(j).second ;
+            }
+            else
+            {
+                slime[i][j] = s0 ;
+            }
+        }
+    }
+            
 }
 
 

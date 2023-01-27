@@ -31,7 +31,7 @@ public:
     double proDecayFactor = 0.5 ;
     double initX = 540.0 ;
     double initY = 500 ;
-    int init_Count = 1 ;
+    int init_Count = 4 ;
     
     int machineID = 1 ;
     string folderName = "./animation/machine" + to_string(machineID) + "/" ;
