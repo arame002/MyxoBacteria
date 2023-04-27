@@ -87,7 +87,7 @@ double MotilityMetabolism::Cal_SwitchProbability(double tmpDt)
     
     methylation = Cal_MethylationLevel(tmpDt) ;
     receptorActivity = Cal_ReceptorActivity() ;
-    return switchProbability = .45; //exp(lnA_a + b * (receptorActivity/ (receptorActivity + gamma ) ) ) ;
+    return switchProbability = exp(lnA_a + b * (receptorActivity/ (receptorActivity + gamma ) ) ) ;
 }
 
 void bacterium::initialize_randomForce()
