@@ -25,6 +25,10 @@ public:
     vector<vector<double> > tips ;
     vector<int > tipsID ;
     vector<int> centerConnectedSegments ;
+    vector<double> Hypahe_X1Values;
+    vector<double> Hypahe_X2Values;
+    vector<double> Hypahe_Y1Values;
+    vector<double> Hypahe_Y2Values;
     double extendingAngle = 13.0 * (constants::pi / 180.0) ;
     double hyphaeWidth = 6.0 ;
     double production = pow(10, 2) ;

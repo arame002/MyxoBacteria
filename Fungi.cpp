@@ -57,7 +57,8 @@ void Fungi::Find_Hyphae_Tips2()
     for (uint i=0 ; i<hyphaeSegments.size() ; i++)
     {
         
-        if (hyphaeSegments[i].can_extend == true && hyphaeSegments[i].can_branch == true )
+        //if (hyphaeSegments[i].can_extend == true && hyphaeSegments[i].can_branch == true )
+        if (hyphaeSegments[i].can_extend == true )
         {
             //for motion inLiquid tip is beginning of element, so we can have the source in the center of domain
             tips[0].push_back(hyphaeSegments[i].x2) ;

@@ -22,6 +22,7 @@ public:
     double deg = 0.0001 ;
     double pro = pow(10, 2) ;
     double grid_dt = 0.05 ;      //timeStep
+    double grad_scale = 1;  //Controls steepnes of Gradient 
     vector<double> xSources ;
     vector<double> ySources ;
     vector<int> indexSourceX ;

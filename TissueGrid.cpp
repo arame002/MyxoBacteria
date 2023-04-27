@@ -233,6 +233,21 @@ void TissueGrid::RoundToZero()
             }
         }
     }
+   /* double cntrX = numberGridsX/2.0 ;
+    double cntrY = numberGridsY/2.0 ;
+    for (int i = 0; i<numberGridsY; i++)
+    {
+        for (int j=0; j< numberGridsX; j++)
+        {
+            grids.at(j).at(i).value = 182.0*exp((100.0*sqrt(2.0)-(sqrt(pow((j-cntrX),2.0)+pow((i-cntrY),2.0))))/((100.0*sqrt(2.0))/grad_scale));
+            //grids.at(j).at(i).value = pow(1/(1+sqrt(pow((j-cntrX)/30.0,2)+pow((i-cntrY)/30.0,2))),1.5);
+            //grids.at(j).at(i).value = 182.0*exp(i/50.0);
+            //grids.at(j).at(i).value = 182.0;
+            //grids.at(j).at(i).value = 182.0*exp(i/grad_scale);
+        }
+    }
+    */
+    
 }
 
 
@@ -254,5 +269,6 @@ void TissueGrid::UpdateTGrid_FromConfigFile()
     deg = globalConfigVars.getConfigValue("grid_degradationRate").toDouble() ;
     pro = globalConfigVars.getConfigValue("grid_productionRate").toDouble() ;
     grid_dt = globalConfigVars.getConfigValue("grid_timeStep").toDouble() ;
+    grad_scale = globalConfigVars.getConfigValue("grad_scale").toDouble() ;
     
 }

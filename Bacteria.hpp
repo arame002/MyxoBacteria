@@ -21,9 +21,10 @@ public:
     double switchProbability ;
     double legand = 20.0 ;              //This is going to be relaced by gridInMain
     double methylation  = 0.93 ;
+    double changeRate = 0.0;
     double km = 1.7 ;
     double kI = 18.2 ;       //18.2 or 1.0
-    double kA = 3.0 ;       //3.0 or 1.0
+    double kA = 3000.0 ;       //3.0 or 1.0
     double N = 6 ;
     double kR = 0.005 ;
     double kB = 0.010 ;

@@ -172,7 +172,10 @@ public:
     void Pass_PointSources_To_Bacteria (vector<vector<double> > sourceP) ;
     
     void Update_MotilityMetabolism (double tmpDt) ;
+    void Update_MotilityMetabolism_Only (double tmpDt) ;
+    void Update_MotilityMetabolism_Only2 (double tmpDt) ;
     void WriteSwitchProbabilities () ;
+    void WriteSwitchProbabilitiesByBacteria();
     void Update_MM_Legand () ;
     
     void WriteBacteria_AllStats () ;

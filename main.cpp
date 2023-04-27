@@ -91,6 +91,28 @@ int main (int argc, char* argv[])
     ofstream trajectories ( tissueBacteria.statsFolder +"trajectories.txt") ;
     
     cout<<"program is running"<<endl  ;
+
+    //Print Header to SwitchProbabilities Data File 
+    for (int i=0; i<nbacteria; i++)
+    {
+    ofstream strSwitchP2;
+    strSwitchP2.open(tissueBacteria.statsFolder + "WriteSwitchProbabilities_Bacteria" + to_string(i) + ".txt", ios::app);
+    {
+       // strSwitchP << bacteria[i].motilityMetabolism.switchProbability << '\t'  ;
+        strSwitchP2 << setw(10) << "maxRunDurat" << '\t' 
+                    << setw(10) << "receptAct" << '\t'
+                    << setw(10) << "legand" << '\t'
+                    << setw(10) << "methylation" << '\t'
+                    << setw(10) << "changeRate" << '\t'
+                    << setw(10) << "LegandEnergy" << '\t'
+                    << setw(10) << "MethylEnergy" << '\t'
+                    << setw(10) << "switchProb" << '\t'
+                    << setw(10) << "switchMode" << '\t';
+                    
+    }
+    strSwitchP2<< endl ;
+    }
+
    //--------------------------- Time controlling parameters ------------------------------------------
     double nt= tissueBacteria.runTime/tissueBacteria.dt + tissueBacteria.initialTime/tissueBacteria.initialStep ;                   //total number of steps
     nt =static_cast<int>(nt) ;
@@ -118,7 +140,7 @@ int main (int argc, char* argv[])
    vector<HyphaeSegment> hyphaeSegments_main = fungi.hyphaeSegments ;
    
    //Bacteria would try to follow hyphae as a highway
-   tissueBacteria.sourceAlongHyphae = false ;
+   tissueBacteria.sourceAlongHyphae = true ;
    tissueBacteria.SlimeTraceHyphae2(fungi) ;
    
    vector<vector<double> > pointSources ;
@@ -161,6 +183,8 @@ int main (int argc, char* argv[])
              ParaView2() ;
              }
              */
+            tissueBacteria.Update_MotilityMetabolism_Only2(.01) ;
+            tissueBacteria.WriteSwitchProbabilitiesByBacteria();
             PositionUpdating(tissueBacteria.initialStep) ;
             
         }
@@ -182,7 +206,24 @@ int main (int argc, char* argv[])
             //  PiliForce() ;
             
             
-            if (l%inverseDt==0)
+            if (l%1000==0 && l%inverseDt!=0)
+            {
+               //Update_SurfaceCoverage(ProteinLevelFile, FrequencyOfVisit) ; //This would slow down the code bc of high number of grids
+               //ParaView2() ;
+               //tissueBacteria.ParaView ()  ;
+               //tissueBacteria.WriteTrajectoryFile() ;
+               cout<<(l-initialNt)/inverseDt<<endl ;
+               //tissueBacteria.WriteBacteria_AllStats() ;
+               //tissueBacteria.WriteSwitchProbabilitiesByBacteria();
+                //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
+                //    cout << coveragePercentage <<endl ;
+               
+               // reducing time step in the simulation will result in changing the reversal frequencies. Lower number as inputs
+               tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
+               tissueBacteria.Update_MotilityMetabolism_Only(.01) ;
+            }
+            
+            else if  (l%inverseDt==0)
             {
                //Update_SurfaceCoverage(ProteinLevelFile, FrequencyOfVisit) ; //This would slow down the code bc of high number of grids
                ParaView2() ;
@@ -190,13 +231,17 @@ int main (int argc, char* argv[])
                tissueBacteria.WriteTrajectoryFile() ;
                cout<<(l-initialNt)/inverseDt<<endl ;
                tissueBacteria.WriteBacteria_AllStats() ;
+               tissueBacteria.WriteSwitchProbabilitiesByBacteria();
+               
                 //   cout << averageLengthFree<<'\t'<<nAttachedPili<<endl ;
                 //    cout << coveragePercentage <<endl ;
                
                // reducing time step in the simulation will result in changing the reversal frequencies. Lower number as inputs
                tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
-               tissueBacteria.Update_MotilityMetabolism( inverseDt * tissueBacteria.dt) ;
+               tissueBacteria.Update_MotilityMetabolism(.01) ;
+               
             }
+            
             PositionUpdating(tissueBacteria.dt) ;
         }
         
