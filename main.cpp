@@ -219,7 +219,7 @@ int main (int argc, char* argv[])
                 //    cout << coveragePercentage <<endl ;
                
                // reducing time step in the simulation will result in changing the reversal frequencies. Lower number as inputs
-               tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
+               //tissueBacteria.UpdateReversalFrequency() ;       // test Effect of chemoattacrant on reversal motion
                tissueBacteria.Update_MotilityMetabolism_Only(.01) ;
             }
             
