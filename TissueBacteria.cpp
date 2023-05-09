@@ -1259,7 +1259,7 @@ void TissueBacteria:: ReversalTime()
                     bacteria[i].motilityMetabolism.switchMode = false ;
                 }
             }
-            else if ( bacteria[i].wrapMode == true && bacteria[i].wrapTime > bacteria[i].wrapDuration)
+            else if ( bacteria[i].wrapMode == true && bacteria[i].motilityMetabolism.switchMode == true)
             {
                 bacteria[i].wrapMode = false ;
                 bacteria[i].wrapTime = 0.0 ;
