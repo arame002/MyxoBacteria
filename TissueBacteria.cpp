@@ -1101,7 +1101,7 @@ void TissueBacteria:: Reverse (int i)
     bacteria[i].turnTime = 0.0 ;
    
   //  bacteria[i].turnAngle =(2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;    //uniform distribution
-    if (bacteria[i].attachedToFungi == false)
+    if (bacteria[i].attachedToFungi == false || inLiquid == true)
     {
         //bacteria[i].turnAngle = gasdev(&idum) *  bacteria[i].maxTurnAngle ;                //guassian distribution
         bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxTurnAngle ;
