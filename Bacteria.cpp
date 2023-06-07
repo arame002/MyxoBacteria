@@ -7,7 +7,7 @@ bacterium::bacterium ()
     ljnodes.resize(nnode-1) ;
     allnodes.resize(2*nnode-1) ;
     duplicate.resize(nnode) ;
-    connection.resize(nbacteria) ;
+    connectionToOtherB.resize(nbacteria) ;
     oldLoc.resize(2) ;
     
     pili.resize(nPili) ;

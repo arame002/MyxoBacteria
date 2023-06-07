@@ -22,15 +22,6 @@ void Fungi::Find_Hyphae_Tips()
         
         if (hyphaeSegments[i].can_extend == true)
         {
-            /*
-            for (int j=0; j<4; j++)
-            {
-            
-                tips[0].push_back(hyphaeSegments[i].x2- j*(hyphaeSegments[i].x2-hyphaeSegments[i].x1)/3.0) ;
-                tips[1].push_back(hyphaeSegments[i].y2- j*( hyphaeSegments[i].y2-hyphaeSegments[i].y1)/3.0) ;
-            }
-             */
-             // tips only
             tips[0].push_back(hyphaeSegments[i].x2) ;
             tips[1].push_back(hyphaeSegments[i].y2) ;
             tipsID.push_back(i);
@@ -50,21 +41,16 @@ void Fungi::Find_Hyphae_Tips()
     }
 }
 //---------------------------------------------------------------------------------------------
-//Only end points are tips
 void Fungi::Find_Hyphae_Tips2()
 {
     tips.resize(2) ;
     for (uint i=0 ; i<hyphaeSegments.size() ; i++)
     {
         
-        //if (hyphaeSegments[i].can_extend == true && hyphaeSegments[i].can_branch == true )
         if (hyphaeSegments[i].can_extend == true )
         {
-            //for motion inLiquid tip is beginning of element, so we can have the source in the center of domain
             tips[0].push_back(hyphaeSegments[i].x2) ;
             tips[1].push_back(hyphaeSegments[i].y2) ;
-            //tips[0].push_back(hyphaeSegments[i].x1) ;
-            //tips[1].push_back(hyphaeSegments[i].y1) ;
             tipsID.push_back(i);
         }
     }
@@ -280,5 +266,8 @@ void Fungi::UpdateFungi_FromConfigFile()
     production = globalConfigVars.getConfigValue("hyphae_production").toDouble() ;
     proDecayFactor = globalConfigVars.getConfigValue("hyphae_proDecayFactor").toDouble() ;
     hyphaeWidth = globalConfigVars.getConfigValue("hyphae_Width").toDouble() ;
+    hyphaeOverLiq = globalConfigVars.getConfigValue("hyphae_OverLiq").toDouble() ;
+    loading_Network = static_cast<bool>(globalConfigVars.getConfigValue("hyphae_Loading_Network").toInt() ) ;
+    branchIsTip = static_cast<bool>(globalConfigVars.getConfigValue("hyphae_BranchIsTip").toInt() ) ;
     
 }

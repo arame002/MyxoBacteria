@@ -14,6 +14,8 @@
 
 
 Fungi driver (Fungi fungi) ;
+Fungi Manual_FungalNetwork ( Fungi fungi) ;    //This is just a template. Modify according to your plan
+Fungi Load_FungalNetwork ( Fungi fungi) ;
 
 
 #endif /* driver_h */

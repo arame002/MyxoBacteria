@@ -45,11 +45,12 @@ public:
 
 class bacterium
 {   public:
+    //---------------------------- Parameters and sub-classes ------------------------------
     vector<node> nodes ;
     vector<node> ljnodes ;
     vector<node> allnodes ;
     vector<node> duplicate ;
-    vector<double> connection ;
+    vector<double> connectionToOtherB ;
     double reversalPeriod = 7.0 ;       //300       //This value updates during the simulations
     double maxRunDuration ;
     double protein ;
@@ -96,6 +97,8 @@ class bacterium
     double wrapMeanAngle = (3.1415/2.0)/ ( (10.0 * wrapDuration) * 0.3 ) ;      //0.3 is fmotor
     
     MotilityMetabolism motilityMetabolism ;
+    
+    //---------------------------- Functions -----------------------------------------
     void initialize_randomForce () ;
     void UpdateBacteria_FromConfigFile() ;
     double LogNormalMaxRunDuration (std::lognormal_distribution<double> &dist, std::default_random_engine &generator , double a, bool calib, double runVal) ;

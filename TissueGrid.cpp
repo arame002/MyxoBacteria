@@ -25,6 +25,12 @@ void TissueGrid::DomainBoundaries(double xMin, double xMax, double yMin, double 
 void TissueGrid::InitializeAllGrids()
 {
     vector<vector <Grid> > tmp (numberGridsY,vector<Grid> ( numberGridsX) ) ;
+    vector<Grid> tmp2 (numberGridsX) ;
+    vector<Grid> tmp3 (numberGridsY) ;
+    ghostTop = tmp2 ;
+    ghostBottom = tmp2 ;
+    ghostLeft = tmp3 ;
+    ghostRight = tmp3 ;
     grids = tmp ;
     
     return ;
@@ -70,6 +76,43 @@ void TissueGrid::DiffusionChanges()
     }
     return ;
 }
+
+void TissueGrid::BoundaryChanges()
+{
+    double tmpChange = 0.0 ;
+    double ghostChange = 0.0 ;
+    for ( int i=0; i< ghostBottom.size() ; i++)
+    {
+        tmpChange = Diffusion * ( ghostBottom.at(i).value - grids.at(0).at(i).value ) * grid_dt / (grid_dy * grid_dy) ;
+        ghostChange = -Diffusion * ( ghostBottom.at(i).value - grids.at(0).at(i).value )/ grid_dy ;
+        
+        grids.at(0).at(i).change += tmpChange ;
+        ghostBottom.at(i).change = ghostChange ;
+        
+        
+        tmpChange = Diffusion * ( ghostTop.at(i).value - grids.at(numberGridsY-1).at(i).value )* grid_dt / (grid_dy * grid_dy) ;
+        ghostChange = -Diffusion * ( ghostTop.at(i).value - grids.at(numberGridsY-1).at(i).value )/ grid_dy ;
+        grids.at(numberGridsY-1).at(i).change += tmpChange ;
+        ghostTop.at(i).change = ghostChange ;
+    }
+    
+    for ( int i=0; i< ghostLeft.size() ; i++)
+    {
+        tmpChange = Diffusion * ( ghostLeft.at(i).value - grids.at(i).at(0).value ) * grid_dt / (grid_dy * grid_dy) ;
+        ghostChange = -Diffusion * ( ghostLeft.at(i).value - grids.at(i).at(0).value )/ grid_dy ;
+        
+        grids.at(i).at(0).change += tmpChange ;
+        ghostLeft.at(i).change = ghostChange ;
+        
+        
+        tmpChange = Diffusion * ( ghostRight.at(i).value - grids.at(i).at(numberGridsX-1).value )* grid_dt / (grid_dx * grid_dx) ;
+        ghostChange = -Diffusion * ( ghostRight.at(i).value - grids.at(i).at(numberGridsX-1).value )/ grid_dx ;
+        grids.at(i).at(numberGridsX-1).change += tmpChange ;
+        ghostRight.at(i).change = ghostChange ;
+    }
+}
+
+
 
 void TissueGrid::FindProductionPoints(vector<double> pSrc)
 {
@@ -139,6 +182,36 @@ void TissueGrid::UpdateChanges()
     }
     return ;
 }
+void TissueGrid::Update_GhostChanges ()
+{
+    if (chemoBoundary == NFB)
+    {
+        for ( int i=0 ; i< ghostBottom.size(); i++)
+        {
+            ghostBottom.at(i).value = grids.at(0).at(i).value + grids.at(0).at(i).change ;
+            ghostTop.at(i).value = grids.at(numberGridsY-1).at(i).value + grids.at(numberGridsY-1).at(i).change  ;
+        }
+        for ( int i=0 ; i< ghostLeft.size(); i++)
+        {
+            ghostBottom.at(i).value = grids.at(i).at(0).value + grids.at(i).at(0).change  ;
+            ghostTop.at(i).value = grids.at(i).at(numberGridsX-1).value + grids.at(i).at(numberGridsX-1).change ;
+        }
+    }
+    
+    else if (chemoBoundary == FluxLeaving)
+    {
+        for ( int i=0 ; i< ghostBottom.size(); i++)
+        {
+            ghostBottom.at(i).value = grids.at(0).at(i).value - ghostBottom.at(i).change * grid_dt ;
+            ghostTop.at(i).value = grids.at(numberGridsY-1).at(i).value - ghostTop.at(i).change * grid_dt    ;
+        }
+        for ( int i=0 ; i< ghostLeft.size(); i++)
+        {
+            ghostBottom.at(i).value = grids.at(i).at(0).value - ghostBottom.at(i).change * grid_dt   ;
+            ghostTop.at(i).value = grids.at(i).at(numberGridsX-1).value - ghostTop.at(i).change * grid_dt  ;
+        }
+    }
+}
 
 void TissueGrid::EulerMethod()
 {
@@ -150,6 +223,7 @@ void TissueGrid::EulerMethod()
         double smallValue = 0.0001 ;
         ClearChanges() ;
         DiffusionChanges() ;
+        //BoundaryChanges() ;
         //DegredationChanges() ;
         ProductionChanges() ;
         for (int i=0; i< numberGridsY ; i++)
@@ -165,6 +239,7 @@ void TissueGrid::EulerMethod()
             }
         }
         UpdateChanges() ;
+        //Update_GhostChanges() ;
         if (l%100 == 0)
         {
             //ParaViewGrids(l/100) ;
@@ -270,5 +345,6 @@ void TissueGrid::UpdateTGrid_FromConfigFile()
     pro = globalConfigVars.getConfigValue("grid_productionRate").toDouble() ;
     grid_dt = globalConfigVars.getConfigValue("grid_timeStep").toDouble() ;
     grad_scale = globalConfigVars.getConfigValue("grad_scale").toDouble() ;
+    chemoBoundary = static_cast<ChemoBoundaryCondition>( globalConfigVars.getConfigValue("chemo_boundary").toInt() ) ;
     
 }
