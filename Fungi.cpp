@@ -10,21 +10,21 @@
 //end points and branches are tips
 Fungi::Fungi ()
 {
-    //UpdateFungi_FromConfigFile() ;
+    
 }
 
 
 void Fungi::Find_Hyphae_Tips()
 {
-    tips.resize(2) ;
+    tips_Coord.resize(2) ;
     for (uint i=0 ; i<hyphaeSegments.size() ; i++)
     {
         
         if (hyphaeSegments[i].can_extend == true)
         {
-            tips[0].push_back(hyphaeSegments[i].x2) ;
-            tips[1].push_back(hyphaeSegments[i].y2) ;
-            tipsID.push_back(i);
+            tips_Coord[0].push_back(hyphaeSegments[i].x2) ;
+            tips_Coord[1].push_back(hyphaeSegments[i].y2) ;
+            tips_SegmentID.push_back(i);
              
         }
          
@@ -34,24 +34,24 @@ void Fungi::Find_Hyphae_Tips()
     {
         if (hyphaeSegments[i].can_branch == false)
         {
-            tips[0].push_back(hyphaeSegments[i].x2) ;
-            tips[1].push_back(hyphaeSegments[i].y2) ;
-            tipsID.push_back(i);
+            tips_Coord[0].push_back(hyphaeSegments[i].x2) ;
+            tips_Coord[1].push_back(hyphaeSegments[i].y2) ;
+            tips_SegmentID.push_back(i);
         }
     }
 }
 //---------------------------------------------------------------------------------------------
 void Fungi::Find_Hyphae_Tips2()
 {
-    tips.resize(2) ;
+    tips_Coord.resize(2) ;
     for (uint i=0 ; i<hyphaeSegments.size() ; i++)
     {
         
         if (hyphaeSegments[i].can_extend == true )
         {
-            tips[0].push_back(hyphaeSegments[i].x2) ;
-            tips[1].push_back(hyphaeSegments[i].y2) ;
-            tipsID.push_back(i);
+            tips_Coord[0].push_back(hyphaeSegments[i].x2) ;
+            tips_Coord[1].push_back(hyphaeSegments[i].y2) ;
+            tips_SegmentID.push_back(i);
         }
     }
 }
@@ -71,10 +71,10 @@ void Fungi:: WriteSourceLoc(vector<vector<double> > pointSource)
 void Fungi::FindProductionNetwork()
 {
     vector<int> ngbrList ;
-    for (int i = 0; i< tipsID.size() ; i++)
+    for (int i = 0; i< tips_SegmentID.size() ; i++)
     {
         bool tmpConnection = false ;
-        int id = tipsID.at(i) ;
+        int id = tips_SegmentID.at(i) ;
         hyphaeSegments.at(id).p2 += production ;
         hyphaeSegments.at(id).p1 += production * proDecayFactor ;
         hyphaeSegments.at(id).tmpP1 = production * proDecayFactor ;
@@ -246,14 +246,6 @@ vector<int> Fungi::FindCenterPointConnection()
 }
 
 //---------------------------------------------------------------------------------------------
-void Fungi::UpdateFungiFolderNames(int id)
-{
-    machineID = id ;
-    folderName = "./animation/machine" + to_string(machineID) + "/" ;
-    statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
-    UpdateFungi_FromConfigFile() ;
-    
-}
 
 void Fungi::UpdateFungi_FromConfigFile()
 {

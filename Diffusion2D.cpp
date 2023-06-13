@@ -6,16 +6,15 @@ TissueGrid Diffusion2D (double xMin, double xMax, double yMin, double yMax,int n
 {
     vector<vector<double> > pointSource = sources ;
     tissue.DomainBoundaries(xMin, xMax, yMin, yMax, nGridX , nGridY) ;
-    /*
-    tissue.xSources.push_back(tissue.xDomainMax / 2.0) ;
-    tissue.ySources.push_back(tissue.yDomainMax / 3.0) ;
-    tissue.xSources.push_back(tissue.xDomainMax / 2.0) ;
-    tissue.ySources.push_back(tissue.yDomainMax / 3.0 * 2.0) ;
-     */
+    
     tissue.xSources = pointSource.at(0) ;
     tissue.ySources = pointSource.at(1) ;
+    //Create the 2D grid structure
     tissue.InitializeAllGrids() ;
+    //Assign the production rates corresponding to the sources
     tissue.FindProductionPoints(pSrc) ;
+    // Let the chemical secrete and diffuse over time
+    // Run for a fixed number of iterations unless the profile achive steady-state condition
     tissue.EulerMethod() ;
 
     

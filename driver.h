@@ -15,6 +15,8 @@
 
 Fungi driver (Fungi fungi) ;
 Fungi Manual_FungalNetwork ( Fungi fungi) ;    //This is just a template. Modify according to your plan
+//Load the fungal network based on coordinates of hyphae segments.
+//The coordinates are found from simulating the fungal growth
 Fungi Load_FungalNetwork ( Fungi fungi) ;
 
 

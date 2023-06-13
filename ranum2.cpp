@@ -1,5 +1,7 @@
 #include "ranum2.h"
 
+//Functions to draw random numbers from Gaussian distributions
+
 float ran2(long *idum)
 {
     int j;

@@ -8,13 +8,12 @@ bacterium::bacterium ()
     allnodes.resize(2*nnode-1) ;
     duplicate.resize(nnode) ;
     connectionToOtherB.resize(nbacteria) ;
-    oldLoc.resize(2) ;
+    oldLocation.resize(2) ;
     
     pili.resize(nPili) ;
 }
 bool bacterium::SourceRegion()
 {
-    double sourceRadius = 5.0 ;
     int numberOfPoints = 0 ;
     bool tmpInsource = false ;
     if (chemoPointSources.size() != 0)
@@ -26,7 +25,7 @@ bool bacterium::SourceRegion()
         double pointX = chemoPointSources.at(0).at(i) ;
         double pointY = chemoPointSources.at(1).at(i) ;
         double r2 = sqrt( pow( (nodes[(nnode-1)/2].x - pointX ) ,2 ) + pow( (nodes[(nnode-1)/2].y - pointY) ,2 ) );
-        if (r2< sourceRadius )
+        if (r2< sourceVicinity )
         {
             tmpInsource = true ;
             
@@ -42,14 +41,11 @@ void bacterium::UpdateBacteria_FromConfigFile()
     motilityMetabolism.UpdateMotility_FromConfigFile() ;
     
     maxTurnAngle = globalConfigVars.getConfigValue("Bacteria_maxTurnAngle").toDouble() ;
-    turnSDV = globalConfigVars.getConfigValue("Bacteria_TurnSDV").toDouble() ;
     chemotaxisPeriod = globalConfigVars.getConfigValue("Bacteria_chemotaxisPeriod").toDouble() ;
-    wrapDuration = globalConfigVars.getConfigValue("wrap_duration").toDouble() ;
+    wrapPeriod = globalConfigVars.getConfigValue("wrap_duration").toDouble() ;
     wrapProbability = globalConfigVars.getConfigValue("wrap_probability").toDouble() ;
     wrapSlowDown = globalConfigVars.getConfigValue("wrap_slowDown").toDouble() ;
     maxWrapAngle = globalConfigVars.getConfigValue("wrap_maxAngle").toDouble() ;
-    wrapSDV = globalConfigVars.getConfigValue("wrap_AngleSDV").toDouble() ;
-    wrapMeanAngle = globalConfigVars.getConfigValue("wrap_MeanAngle").toDouble() ;
     maxRunDuration = 1.0 / globalConfigVars.getConfigValue("Bacteria_reversalRate").toDouble() ;
     
 }
@@ -90,7 +86,7 @@ double MotilityMetabolism::Cal_SwitchProbability(double tmpDt)
     return switchProbability = exp(lnA_a + b * (receptorActivity/ (receptorActivity + gamma ) ) ) ;
 }
 
-void bacterium::initialize_randomForce()
+void bacterium::initialize_RandomForce()
 {
     for (int j=0 ; j<nnode ; j++)
     {
@@ -123,7 +119,6 @@ double bacterium::LogNormalMaxRunDuration(std::lognormal_distribution<double> &d
     if (calib == true)
     {
         
-    //maxRunDuration =  1.0 / reversalRate * distribution(generator) ;
     maxRunDuration = 1.0/ a * dist(generator) ;
     return maxRunDuration ;
     }

@@ -22,18 +22,26 @@ class Fungi {
 public:
     //---------------------------- Parameters and sub-classes ------------------------------
     vector<HyphaeSegment> hyphaeSegments ;
-    vector<vector<double> > tips ;
-    vector<int > tipsID ;
+    vector<vector<double> > tips_Coord ;
+    vector<int > tips_SegmentID ;
     vector<int> centerConnectedSegments ;
     vector<double> Hypahe_X1Values;
     vector<double> Hypahe_X2Values;
     vector<double> Hypahe_Y1Values;
     vector<double> Hypahe_Y2Values;
+    //Angle between extended segment and primary segment
+    //Used for manual network
     double extendingAngle = 13.0 * (constants::pi / 180.0) ;
+    // Hyphae + Liquid around it
     double hyphaeWidth = 6.0 ;
+    // What fraction of hyphaeWidth is hyphae? the rest would be liquid
     double hyphaeOverLiq = 0.5 ;
-    double production = pow(10, 2) ;
-    double proDecayFactor = 0.5 ;
+    // production rate at the tips.
+    
+    double production = pow(10, 2) ;     //This is going to update the number used in TissueGrid
+    //Include the aging effect in production rates.
+    double proDecayFactor = 0.5 ;       //Currently not in use
+    //Center of the fungal network
     double initX = 500.0 ;
     double initY = 500 ;
     int init_Count = 4 ;
@@ -56,8 +64,10 @@ public:
     vector<int> FindNeighborList (int i) ;
     void Rec_CalNeighborProduction (int id, vector<int> ngbrList, int nbrElement, bool connection) ;
     void Rec_CalNeighborProduction2(int id, vector<int> ngbrList, int nbrElement ) ;
+    
+    //Find the neighbors of the segments at the center of the network
     vector<int> FindCenterPointConnection () ;
-    void UpdateFungiFolderNames (int ) ;
+    
     void UpdateFungi_FromConfigFile () ;
     
 };

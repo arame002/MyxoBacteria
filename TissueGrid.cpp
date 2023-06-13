@@ -125,11 +125,6 @@ void TissueGrid::FindProductionPoints(vector<double> pSrc)
         tmpIndexY = static_cast<int>(round ( ( ySources.at(i) - yDomainMin ) / grid_dy ) ) ;
         tmpIndexY = fmod(tmpIndexY, numberGridsY ) ;
         
-        //double tmpPro = pro* exp(-fmod(i, 4)/10.0) ;
-        //grids.at(tmpIndexY).at(tmpIndexX).productionRate += tmpPro ;
-        
-        //grids.at(tmpIndexY).at(tmpIndexX).productionRate = pro ;
-        
         //Based on relative distance in segment
         grids.at(tmpIndexY).at(tmpIndexX).productionRate = pSrc.at(i) ;
         
@@ -217,15 +212,17 @@ void TissueGrid::EulerMethod()
 {
     int l = 0 ;
     bool status = false ;
-    while (status == false && l< 100) //10000
+    while (status == false && l < maxIterator) //10000
     {
         status = true ;
-        double smallValue = 0.0001 ;
+        double smallValue = 0.0000001 ;
         ClearChanges() ;
         DiffusionChanges() ;
         //BoundaryChanges() ;
         //DegredationChanges() ;
         ProductionChanges() ;
+        
+        //Check for steady-state condition
         for (int i=0; i< numberGridsY ; i++)
         {
             for (int j = 0; j< numberGridsX ; j++)
@@ -308,6 +305,8 @@ void TissueGrid::RoundToZero()
             }
         }
     }
+    
+    //Calculating the values based on analytical solutions
    /* double cntrX = numberGridsX/2.0 ;
     double cntrY = numberGridsY/2.0 ;
     for (int i = 0; i<numberGridsY; i++)
@@ -325,15 +324,6 @@ void TissueGrid::RoundToZero()
     
 }
 
-
-void TissueGrid::UpdateTGridsFolderNames(int id)
-{
-    machineID = id ;
-    folderName = "./animation/machine" + to_string(machineID) + "/" ;
-    statsFolder = "./dataStats/machine" + to_string(machineID) + "/" ;
-    
-}
-
 void TissueGrid::UpdateTGrid_FromConfigFile()
 {
     folderName = globalConfigVars.getConfigValue("AnimationFolder").toString() ;
@@ -346,5 +336,6 @@ void TissueGrid::UpdateTGrid_FromConfigFile()
     grid_dt = globalConfigVars.getConfigValue("grid_timeStep").toDouble() ;
     grad_scale = globalConfigVars.getConfigValue("grad_scale").toDouble() ;
     chemoBoundary = static_cast<ChemoBoundaryCondition>( globalConfigVars.getConfigValue("chemo_boundary").toInt() ) ;
+    //maxIterator = globalConfigVars.getConfigValue("grid_maxIterator").toDouble() ;
     
 }

@@ -27,7 +27,7 @@ void TissueBacteria::Initialze_AllRandomForce()
     for (int i=0; i<nbacteria; i++)
     {
         bacteria[i].connectionToOtherB[i]=0.0 ;
-        bacteria[i].initialize_randomForce() ;
+        bacteria[i].initialize_RandomForce() ;
     }
 }
 //-----------------------------------------------------------------------------------------------------
@@ -44,10 +44,10 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     dt = globalConfigVars.getConfigValue("SimulationTimeStep").toDouble() ;
     
     //Bacteria mechanical parameters
-    length = globalConfigVars.getConfigValue("BacteiaLength").toDouble() ;
-    B = globalConfigVars.getConfigValue("BacteriaBenCoeff").toDouble() ;
-    K = globalConfigVars.getConfigValue("BacteriaLinearStiff").toDouble() ;
-    x0 = length/(nnode - 1) ;
+    bacteriaLength = globalConfigVars.getConfigValue("BacteiaLength").toDouble() ;
+    bending_Stiffness = globalConfigVars.getConfigValue("BacteriaBenCoeff").toDouble() ;
+    linear_Stiffness = globalConfigVars.getConfigValue("BacteriaLinearStiff").toDouble() ;
+    equilibriumLength = bacteriaLength/(nnode - 1) ;
     
     //Lennard-Jones interaction parameters
     lj_Energy = globalConfigVars.getConfigValue("ELJ").toDouble() ;
@@ -55,7 +55,7 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     lj_Interaction = static_cast<bool>(globalConfigVars.getConfigValue("interactingLJ").toInt() ) ;
     
     //Bacteria motor parametes
-    fmotor = globalConfigVars.getConfigValue("Bacteira_motorForce").toDouble() ;
+    motorForce_Amplitude = globalConfigVars.getConfigValue("Bacteira_motorForce").toDouble() ;
     motorEfficiency_Liquid = globalConfigVars.getConfigValue("Bacteria_motorEfficiency_Liquid").toDouble() ;
     motorEfficiency_Agar = globalConfigVars.getConfigValue("Bacteria_motorEfficiency_Agar").toDouble() ;
     motorEfficiency = motorEfficiency_Liquid ;
@@ -79,20 +79,23 @@ void TissueBacteria::UpdateTissue_FromConfigFile()
     agarThicknessY = domainy * globalConfigVars.getConfigValue("boundary_agarThicknessY_Coeff").toDouble() ;
     
     //Slime( liquid) related parameters
-    sr = globalConfigVars.getConfigValue("slime_SecretionRate").toDouble() ;
-    kd = globalConfigVars.getConfigValue("slime_DecayRate").toDouble() ;
+    slimeSecretionRate = globalConfigVars.getConfigValue("slime_SecretionRate").toDouble() ;
+    slimeDecayRate = globalConfigVars.getConfigValue("slime_DecayRate").toDouble() ;
     slimeEffectiveness = globalConfigVars.getConfigValue("slime_Effectiveness").toDouble() ;
     liqBackground = globalConfigVars.getConfigValue("slime_background").toDouble() ;
     liqLayer = globalConfigVars.getConfigValue("slime_Layer").toDouble() ;
     liqHyphae = globalConfigVars.getConfigValue("slime_Hyphae").toDouble() ;
     Slime_CutOff = globalConfigVars.getConfigValue("slime_Attachment_CutOff").toDouble() ;
-    searchAreaForSlime = static_cast<int> (round(( length )/ min(dx , dy))) ;
+    searchAreaForSlime = static_cast<int> (round(( bacteriaLength )/ min(dx , dy))) ;
     
     inLiquid = globalConfigVars.getConfigValue("Bacteria_inLiquid").toInt() ;
     PBC = globalConfigVars.getConfigValue("Bacteria_PBC").toInt() ;
     chemotacticMechanism = static_cast<ChemotacticMechanism>( globalConfigVars.getConfigValue("Bacteria_chemotacticModel").toInt() ) ;
     initialCondition =static_cast<InitialCondition>( globalConfigVars.getConfigValue("Bacteria_InitialCondition").toInt() ) ;
     run_calibrated = static_cast<bool>( globalConfigVars.getConfigValue("Run_Calibrated").toInt() ) ;
+    normal_turnAngle_SDV = globalConfigVars.getConfigValue("Bacteria_TurnSDV").toDouble() ;
+    normal_wrapAngle_SDV = globalConfigVars.getConfigValue("wrap_AngleSDV").toDouble() ;
+    normal_wrapAngle_mean = globalConfigVars.getConfigValue("wrap_MeanAngle").toDouble() ;
     
     for (int i = 0; i< nbacteria; i++)
     {
@@ -149,10 +152,10 @@ void TissueBacteria::Initialization ()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ; // or nodes[j].x + n * equilibriumLength * a
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
         j=(nnode-1)/2 ;
         if (coloum == nextLine-1)
@@ -193,10 +196,10 @@ void TissueBacteria::Initialization2 ()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ; // or nodes[j].x + n * equilibriumLength * a
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
         j=(nnode-1)/2 ;
         if (coloum == nextLine-1)
@@ -234,10 +237,10 @@ void TissueBacteria::CircularInitialization ()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ; // or nodes[j].x + n * equilibriumLength * a
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
     }
     
@@ -269,11 +272,11 @@ void TissueBacteria::SwarmingInitialization ()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ;
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+           // or nodes[j].x + n * equilibriumLength * a
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ;
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
     }
     
@@ -298,10 +301,10 @@ void TissueBacteria::CenterInitialization()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ; // or nodes[j].x + n * equilibriumLength * a
+           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
     }
 }
@@ -338,14 +341,116 @@ void TissueBacteria::AlongNetworkInitialization()
         b = b/ sqrt(a*a+b*b) ;
         for (int n=1; n<=(nnode-1)/2; n++)
         {
-           bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + x0 * a ; // or nodes[j].x + n * x0 * a
-           bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - x0 * a ;
-           bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + x0 * b ;
-           bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - x0 * b ;
+            // or nodes[j].x + n * equilibriumLength * a
+            bacteria[i].nodes[j+n].x = bacteria[i].nodes[j+n-1].x + equilibriumLength * a ;
+            bacteria[i].nodes[j-n].x = bacteria[i].nodes[j-n+1].x - equilibriumLength * a ;
+            bacteria[i].nodes[j+n].y = bacteria[i].nodes[j+n-1].y + equilibriumLength * b ;
+            bacteria[i].nodes[j-n].y = bacteria[i].nodes[j-n+1].y - equilibriumLength * b ;
         }
     }
     
 }
+//-----------------------------------------------------------------------------------------------------
+
+void TissueBacteria::Initialize_Pili ()
+{
+    for (int i=0 ; i<nbacteria ; i++)
+    {
+        for ( int j=0 ; j<nPili ; j++)
+        {
+           bacteria[i].pili[j].lFree = rand() / (RAND_MAX + 1.0) * bacteria[i].pili[j].piliMaxLength ;
+           bacteria[i].pili[j].attachment = false ;
+           bacteria[i].pili[j].retraction = false ;
+           bacteria[i].pili[j].pili_Fx = 0.0 ;
+           bacteria[i].pili[j].pili_Fy = 0.0 ;
+           bacteria[i].pili[j].piliForce = 0.0 ;
+            
+            if(rand() / (RAND_MAX + 1.0) < 0.5 )
+            {
+               bacteria[i].pili[j].retraction = true ;
+            }
+            else
+            {
+               bacteria[i].pili[j].retraction = false ;
+            }
+            if (rand() / (RAND_MAX + 1.0) < 0.5 )
+            {
+               bacteria[i].pili[j].attachment = true ;
+               bacteria[i].pili[j].retraction = true ;
+            }
+            else
+            {
+               bacteria[i].pili[j].attachment = false ;
+            }
+            
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------------------------------
+
+//Calculate the area covered by bacteria based on slime value.
+//This function works only when slime[][] changes with slime secretion from bacteria
+void TissueBacteria::Update_SurfaceCoverage ()
+{
+    double percentage = 0 ;
+    
+    for (int m=0; m< nx; m++)
+    {
+        for (int n=0 ; n < ny ; n++)
+        {
+            if (slime[m][n] > liqBackground && surfaceCoverage[m][n] == 0 )
+            {
+                surfaceCoverage[m][n] = 1 ;
+                percentage += 1 ;
+            }
+        }
+    }
+    percentage = percentage / (nx * ny * 1.0) ;
+    coveragePercentage += percentage ;
+    
+}
+//-----------------------------------------------------------------------------------------------------
+
+void TissueBacteria::Update_SurfaceCoverage (ofstream ProteinLevelFile ,ofstream FrequencyOfVisit )
+{
+   string NumberOfVisits = statsFolder + "NumberOfVisits"+ to_string(index1)+ ".txt" ;
+   ofstream NumberOfVisit;
+   NumberOfVisit.open(NumberOfVisits.c_str());
+   Update_SurfaceCoverage() ;
+   VisitsPerGrid() ;
+   int alfaMin = PowerLawExponent() ;
+   
+   for (int m=0; m< nx; m++)
+   {
+   for (int n=0 ; n < ny ; n++)
+   {
+   NumberOfVisit<< visit[m][n]<<'\t' ;
+   }
+   NumberOfVisit<<endl ;
+   }
+   NumberOfVisit<<endl<<endl ;
+   NumberOfVisit.close() ;
+   
+   for (int i=0; i<nbacteria; i++)
+   {
+   ProteinLevelFile<< bacteria[i].protein<<"," ;
+   }
+   ProteinLevelFile<< endl<<endl ;
+   FrequencyOfVisit<< "Results of frame "<< index1<<" are below : "<<endl ;
+   FrequencyOfVisit<< "Surface coverage is equal to:     "<<coveragePercentage <<endl ;
+   FrequencyOfVisit<< "alfaMin is equal to:    " << alfaMin<<endl ;
+   FrequencyOfVisit<<"size of FrequencyOfVisit is equal to:  "<< numOfClasses<<endl ;
+   FrequencyOfVisit<<"Frequecny of no visit is equal to:    "<<fNoVisit<<endl ;
+   
+   for (int i=0 ; i< numOfClasses ; i++)
+   {
+   FrequencyOfVisit<< frequency[i]<<'\t' ;
+   }
+   FrequencyOfVisit<<endl<<endl ;
+  
+}
+
 //-----------------------------------------------------------------------------------------------------
 
 void TissueBacteria::Update_LJ_NodePositions ()
@@ -360,13 +465,74 @@ void TissueBacteria::Update_LJ_NodePositions ()
     }
 }
 //-----------------------------------------------------------------------------------------------------
+
+void TissueBacteria::PositionUpdating (double t)
+{   double localFrictionCoeff = 0.0 ;
+    double totalForceX = 0 ;
+    double totalForceY = 0 ;
+    for (int i=0; i<nbacteria; i++)
+    {
+       bacteria[i].oldLocation.at(0) = bacteria[i].nodes[(nnode-1)/2].x ;
+       bacteria[i].oldLocation.at(1) = bacteria[i].nodes[(nnode-1)/2].y ;
+       int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + domainx, domainx ) / dx ), nx) ) ;
+       int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + domainy, domainy ) / dy ), ny )) ;
+       if (tmpXIndex< 0 || tmpXIndex > nx -1 || tmpYIndex< 0 || tmpYIndex > ny -1 )
+       {
+          cout<<"positionUpdating, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
+       }
+       // oldChem is now updated in Cal_Chemical2
+       //tissueBacteria.bacteria[i].oldChem = tissueBacteria.chemoProfile.at(tmpYIndex).at(tmpXIndex) ;
+        for(int j=0 ; j<nnode; j++)
+        {
+            localFrictionCoeff = Update_LocalFriction(bacteria[i].nodes[j].x , bacteria[i].nodes[j].y) ;
+            
+            // it is not += because the old value is related to another node
+            totalForceX = bacteria[i].nodes[j].fSpringx ;
+            totalForceX += bacteria[i].nodes[j].fBendingx ;
+            totalForceX += bacteria[i].nodes[j].fljx ;
+            totalForceX += bacteria[i].nodes[j].fMotorx ;
+            bacteria[i].nodes[j].x += t * totalForceX / localFrictionCoeff ;
+            bacteria[i].nodes[j].x += bacteria[i].nodes[j].xdev ;
+            
+            // it is not += because the old value is related to another node
+            totalForceY = bacteria[i].nodes[j].fSpringy ;
+            totalForceY += bacteria[i].nodes[j].fBendingy ;
+            totalForceY += bacteria[i].nodes[j].fljy ;
+            totalForceY += bacteria[i].nodes[j].fMotory ;
+            bacteria[i].nodes[j].y += t * totalForceY / localFrictionCoeff ;
+            bacteria[i].nodes[j].y += bacteria[i].nodes[j].ydev ;
+            
+            
+            
+            // pili related forces
+            if (j==0)
+            {
+                for (int m=0 ; m<nPili ; m++)
+                {
+                   bacteria[i].nodes[j].x += t * (bacteria[i].pili[m].pili_Fx) / localFrictionCoeff ;
+                   bacteria[i].nodes[j].y += t * (bacteria[i].pili[m].pili_Fy) / localFrictionCoeff ;
+                }
+            }
+           //Save numbers for printing
+           if (j== (nnode -1)/2 )
+           {
+              bacteria[i].locVelocity = sqrt(totalForceX * totalForceX + totalForceY * totalForceY)/ localFrictionCoeff ;
+              bacteria[i].locFriction = localFrictionCoeff ;
+           }
+            
+        }
+    }
+    Update_LJ_NodePositions() ;
+}
+
+//-----------------------------------------------------------------------------------------------------
 void TissueBacteria::Initialize_ReversalTimes ()
 {
     for( int i=0 ; i<nbacteria ; i++)
     {
        bacteria[i].reversalPeriod =  bacteria[i].maxRunDuration ;
-       bacteria[i].reversalTime = (rand() / (RAND_MAX + 1.0)) * bacteria[i].maxRunDuration ;
-       bacteria[i].reversalTime -= fmod(bacteria[i].reversalTime , dt ) ;
+       bacteria[i].internalReversalTimer = (rand() / (RAND_MAX + 1.0)) * bacteria[i].maxRunDuration ;
+       bacteria[i].internalReversalTimer -= fmod(bacteria[i].internalReversalTimer , dt ) ;
         if (rand() / (RAND_MAX + 1.0) < 0.5)
         {
             //bacteria[i].directionOfMotion = false ;
@@ -415,24 +581,24 @@ void TissueBacteria:: Cal_AllLinearSpring_Forces()
         {
             if (j==0 )
             {
-                bacteria[i].nodes[j].fSpringx= -K * (Cal_NodeToNodeDistance (i,j,i,j+1 ) - x0) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) / Cal_NodeToNodeDistance (i,j,i,j+1) ;
+                bacteria[i].nodes[j].fSpringx= -linear_Stiffness * (Cal_NodeToNodeDistance (i,j,i,j+1 ) - equilibriumLength) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) / Cal_NodeToNodeDistance (i,j,i,j+1) ;
                 
-                bacteria[i].nodes[j].fSpringy= -K * (Cal_NodeToNodeDistance (i,j,i,j+1 ) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) / Cal_NodeToNodeDistance (i,j,i,j+1) ;
+                bacteria[i].nodes[j].fSpringy= -linear_Stiffness * (Cal_NodeToNodeDistance (i,j,i,j+1 ) - equilibriumLength) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) / Cal_NodeToNodeDistance (i,j,i,j+1) ;
             }
             
             else if (j== (nnode-1))
             {
-                bacteria[i].nodes[j].fSpringx = -K * (Cal_NodeToNodeDistance (i,j,i,j-1) - x0) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) / Cal_NodeToNodeDistance (i,j,i,j-1) ;
+                bacteria[i].nodes[j].fSpringx = -linear_Stiffness * (Cal_NodeToNodeDistance (i,j,i,j-1) - equilibriumLength) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) / Cal_NodeToNodeDistance (i,j,i,j-1) ;
                 
-                bacteria[i].nodes[j].fSpringy = -K * (Cal_NodeToNodeDistance (i,j,i,j-1) - x0) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) / Cal_NodeToNodeDistance (i,j,i,j-1) ;
+                bacteria[i].nodes[j].fSpringy = -linear_Stiffness * (Cal_NodeToNodeDistance (i,j,i,j-1) - equilibriumLength) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) / Cal_NodeToNodeDistance (i,j,i,j-1) ;
             }
             else
             {
-                bacteria[i].nodes[j].fSpringx  = -K * ( Cal_NodeToNodeDistance(i,j,i,j-1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) /Cal_NodeToNodeDistance(i,j,i,j-1) ;
-                bacteria[i].nodes[j].fSpringx += -K * ( Cal_NodeToNodeDistance(i,j,i,j+1) - x0 ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) /Cal_NodeToNodeDistance(i,j,i,j+1) ;
+                bacteria[i].nodes[j].fSpringx  = -linear_Stiffness * ( Cal_NodeToNodeDistance(i,j,i,j-1) - equilibriumLength ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j-1].x) /Cal_NodeToNodeDistance(i,j,i,j-1) ;
+                bacteria[i].nodes[j].fSpringx += -linear_Stiffness * ( Cal_NodeToNodeDistance(i,j,i,j+1) - equilibriumLength ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x) /Cal_NodeToNodeDistance(i,j,i,j+1) ;
                 
-                bacteria[i].nodes[j].fSpringy  = -K * ( Cal_NodeToNodeDistance(i,j,i,j-1) - x0 ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) /Cal_NodeToNodeDistance(i,j,i,j-1) ;
-                bacteria[i].nodes[j].fSpringy += -K * ( Cal_NodeToNodeDistance(i,j,i,j+1) - x0 ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) /Cal_NodeToNodeDistance(i,j,i,j+1) ;
+                bacteria[i].nodes[j].fSpringy  = -linear_Stiffness * ( Cal_NodeToNodeDistance(i,j,i,j-1) - equilibriumLength ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j-1].y) /Cal_NodeToNodeDistance(i,j,i,j-1) ;
+                bacteria[i].nodes[j].fSpringy += -linear_Stiffness * ( Cal_NodeToNodeDistance(i,j,i,j+1) - equilibriumLength ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y) /Cal_NodeToNodeDistance(i,j,i,j+1) ;
             }
         }
     }
@@ -477,19 +643,19 @@ void TissueBacteria:: Cal_AllBendingSpring_Forces()
         
         for (int j=0 ;j<nnode-2; j++)
         {
-            Bend1x[j] += -B *(bacteria[i].nodes[j+2].x-bacteria[i].nodes[j+1].x)/(Cal_NodeToNodeDistance(i,j,i,j+1) * Cal_NodeToNodeDistance(i,j+2,i,j+1)) ;
-            Bend1x[j] +=  B *(Cal_Cos0ijk_InteriorNodes(i,j+1)/(Cal_NodeToNodeDistance(i,j,i,j+1)*Cal_NodeToNodeDistance(i,j,i,j+1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j+1].x)) ;
+            Bend1x[j] += -bending_Stiffness *(bacteria[i].nodes[j+2].x-bacteria[i].nodes[j+1].x)/(Cal_NodeToNodeDistance(i,j,i,j+1) * Cal_NodeToNodeDistance(i,j+2,i,j+1)) ;
+            Bend1x[j] +=  bending_Stiffness *(Cal_Cos0ijk_InteriorNodes(i,j+1)/(Cal_NodeToNodeDistance(i,j,i,j+1)*Cal_NodeToNodeDistance(i,j,i,j+1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j+1].x)) ;
             
-            Bend1y[j] += -B *(bacteria[i].nodes[j+2].y-bacteria[i].nodes[j+1].y)/(Cal_NodeToNodeDistance(i,j,i,j+1) * Cal_NodeToNodeDistance(i,j+2,i,j+1)) ;
-            Bend1y[j] +=  B *(Cal_Cos0ijk_InteriorNodes(i,j+1)/(Cal_NodeToNodeDistance(i,j,i,j+1)*Cal_NodeToNodeDistance(i,j,i,j+1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j+1].y)) ;
+            Bend1y[j] += -bending_Stiffness *(bacteria[i].nodes[j+2].y-bacteria[i].nodes[j+1].y)/(Cal_NodeToNodeDistance(i,j,i,j+1) * Cal_NodeToNodeDistance(i,j+2,i,j+1)) ;
+            Bend1y[j] +=  bending_Stiffness *(Cal_Cos0ijk_InteriorNodes(i,j+1)/(Cal_NodeToNodeDistance(i,j,i,j+1)*Cal_NodeToNodeDistance(i,j,i,j+1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j+1].y)) ;
             
         }
         for (int j=2; j<nnode ; j++)
         {
-            Bend3x[j] += -B *(bacteria[i].nodes[j-2].x-bacteria[i].nodes[j-1].x)/(Cal_NodeToNodeDistance(i,j-2,i,j-1) * Cal_NodeToNodeDistance(i,j,i,j-1)) ;
-            Bend3x[j] +=  B *(Cal_Cos0ijk_InteriorNodes(i,j-1)/(Cal_NodeToNodeDistance(i,j,i,j-1)*Cal_NodeToNodeDistance(i,j,i,j-1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j-1].x)) ;
-            Bend3y[j] += -B *(bacteria[i].nodes[j-2].y-bacteria[i].nodes[j-1].y)/(Cal_NodeToNodeDistance(i,j-2,i,j-1) * Cal_NodeToNodeDistance(i,j,i,j-1)) ;
-            Bend3y[j] +=  B *(Cal_Cos0ijk_InteriorNodes(i,j-1)/(Cal_NodeToNodeDistance(i,j,i,j-1)*Cal_NodeToNodeDistance(i,j,i,j-1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j-1].y)) ;
+            Bend3x[j] += -bending_Stiffness *(bacteria[i].nodes[j-2].x-bacteria[i].nodes[j-1].x)/(Cal_NodeToNodeDistance(i,j-2,i,j-1) * Cal_NodeToNodeDistance(i,j,i,j-1)) ;
+            Bend3x[j] +=  bending_Stiffness *(Cal_Cos0ijk_InteriorNodes(i,j-1)/(Cal_NodeToNodeDistance(i,j,i,j-1)*Cal_NodeToNodeDistance(i,j,i,j-1))*(bacteria[i].nodes[j].x-bacteria[i].nodes[j-1].x)) ;
+            Bend3y[j] += -bending_Stiffness *(bacteria[i].nodes[j-2].y-bacteria[i].nodes[j-1].y)/(Cal_NodeToNodeDistance(i,j-2,i,j-1) * Cal_NodeToNodeDistance(i,j,i,j-1)) ;
+            Bend3y[j] +=  bending_Stiffness *(Cal_Cos0ijk_InteriorNodes(i,j-1)/(Cal_NodeToNodeDistance(i,j,i,j-1)*Cal_NodeToNodeDistance(i,j,i,j-1))*(bacteria[i].nodes[j].y-bacteria[i].nodes[j-1].y)) ;
         }
         for (int j=1; j<nnode-1; j++)
         {
@@ -545,7 +711,7 @@ double TissueBacteria::Cal_MinDistance_PBC (double x1 , double y1 ,double x2 , d
 
 void TissueBacteria::Update_BacterialConnection ()
 {
-    double xmin = sqrt((x0/4)*(x0/4)+ 0.36) ;
+    double xmin = sqrt((equilibriumLength/4)*(equilibriumLength/4)+ 0.36) ;
     double d  ;
     double min ;
     for (int i=0; i<nbacteria-1; i++)
@@ -557,7 +723,7 @@ void TissueBacteria::Update_BacterialConnection ()
             
             min = Cal_MinDistance_PBC(bacteria[i].nodes[(nnode-1)/2].x , bacteria[i].nodes[(nnode-1)/2].y , bacteria[j].nodes[(nnode-1)/2].x , bacteria[j].nodes[(nnode-1)/2].y)  ;
             
-            if (min < (1.2 * length) )
+            if (min < (1.2 * bacteriaLength) )
             {
                 for (int m=0; m<(2*nnode-1); m++)
                 {
@@ -611,7 +777,7 @@ double TissueBacteria:: Cal_AllBacteriaLJ_Forces()
         for (int j=i+1 ; j<nbacteria ; j++)
         {  min = Cal_MinDistance_PBC(bacteria[i].nodes[(nnode-1)/2].x , bacteria[i].nodes[(nnode-1)/2].y , bacteria[j].nodes[(nnode-1)/2].x , bacteria[j].nodes[(nnode-1)/2].y)  ;
             
-            if ( min < (1.2 * length))
+            if ( min < (1.2 * bacteriaLength))
             {
                 for (int m=0; m<2*nnode-1; m++)
                 {
@@ -652,7 +818,7 @@ double TissueBacteria:: Cal_AllBacteriaLJ_Forces()
     return ulj ;
 }
 //-----------------------------------------------------------------------------------------------------
-/*
+
 void TissueBacteria:: PiliForce ()
 {
     
@@ -680,8 +846,8 @@ void TissueBacteria:: PiliForce ()
                     if (bacteria[i].pili[j].piliSubs)       //pili-substrate interaction
                     {
                         alfa = orientationBacteria + 180.0/nPili * (j+1/2.0) -90.0 ;    //angle in degree
-                        bacteria[i].pili[j].xEnd = fmod ( bacteria[i].nodes[0].x + bacteria[i].pili[j].lFree * cos(alfa*tetta0/180.0) + domainx ,domainx ) ;
-                        bacteria[i].pili[j].yEnd = fmod ( bacteria[i].nodes[0].y + bacteria[i].pili[j].lFree * sin(alfa*tetta0/180.0) + domainy, domainy ) ;
+                        bacteria[i].pili[j].xEnd = fmod ( bacteria[i].nodes[0].x + bacteria[i].pili[j].lFree * cos(alfa*PI/180.0) + domainx ,domainx ) ;
+                        bacteria[i].pili[j].yEnd = fmod ( bacteria[i].nodes[0].y + bacteria[i].pili[j].lFree * sin(alfa*PI/180.0) + domainy, domainy ) ;
                     }
                     else            //pili-pili interaction
                     {
@@ -697,9 +863,9 @@ void TissueBacteria:: PiliForce ()
                 if ( rand() / (RAND_MAX + 1.0) < bacteria[i].pili[j].subDetachmentRate* dt )
                 {
                     bacteria[i].pili[j].attachment = false ;
-                    bacteria[i].pili[j].fx = 0.0 ;
-                    bacteria[i].pili[j].fy = 0.0 ;
-                    bacteria[i].pili[j].F = 0.0 ;
+                    bacteria[i].pili[j].pili_Fx = 0.0 ;
+                    bacteria[i].pili[j].pili_Fy = 0.0 ;
+                    bacteria[i].pili[j].piliForce = 0.0 ;
                     
                 }
                 else        //if the pili remains attached
@@ -708,15 +874,15 @@ void TissueBacteria:: PiliForce ()
                     if (bacteria[i].pili[j].piliSubs)
                     {
                         // calculate forces for pili-substrate
-                        bacteria[i].pili[j].lContour = MinDistance(bacteria[i].nodes[0].x, bacteria[i].nodes[0].y, bacteria[i].pili[j].xEnd, bacteria[i].pili[j].yEnd ) ;
+                        bacteria[i].pili[j].lContour = Cal_MinDistance_PBC(bacteria[i].nodes[0].x, bacteria[i].nodes[0].y, bacteria[i].pili[j].xEnd, bacteria[i].pili[j].yEnd ) ;
                         
                         alfa = AngleOfVector(bacteria[i].nodes[0].x + shiftx * domainx , bacteria[i].nodes[0].y + shifty * domainy , bacteria[i].pili[j].xEnd,bacteria[i].pili[j].yEnd) ;
                         
-                        bacteria[i].pili[j].F = max(0.0 , kPullPili * (bacteria[i].pili[j].lContour-bacteria[i].pili[j].lFree) ) ;
+                        bacteria[i].pili[j].piliForce = max(0.0 , bacteria[i].pili[j].kPullPili * (bacteria[i].pili[j].lContour-bacteria[i].pili[j].lFree) ) ;
                         
-                        bacteria[i].pili[j].fx = bacteria[i].pili[j].F * cos(alfa*tetta0/180.0)  ;
+                        bacteria[i].pili[j].pili_Fx = bacteria[i].pili[j].piliForce * cos(alfa*PI/180.0)  ;
                         
-                        bacteria[i].pili[j].fy = bacteria[i].pili[j].F * sin(alfa*tetta0/180.0)  ;
+                        bacteria[i].pili[j].pili_Fy = bacteria[i].pili[j].piliForce * sin(alfa*PI/180.0)  ;
                         
                     }
                     
@@ -746,7 +912,7 @@ void TissueBacteria:: PiliForce ()
             
             if (bacteria[i].pili[j].retraction )
             {
-                bacteria[i].pili[j].vRet = vRetPili0*(1-bacteria[i].pili[j].F / fStall)  ;
+                bacteria[i].pili[j].vRet = bacteria[i].pili[j].vRetPili0*(1-bacteria[i].pili[j].piliForce / bacteria[i].pili[j].fStall)  ;
                 if (bacteria[i].pili[j].vRet < 0.0)
                 {
                     bacteria[i].pili[j].vRet = 0.0 ;
@@ -757,25 +923,24 @@ void TissueBacteria:: PiliForce ()
                     bacteria[i].pili[j].lFree = 0.0 ;
                     bacteria[i].pili[j].attachment = false ;      //the pili is detached when its length is zero
                     bacteria[i].pili[j].retraction = false ;
-                    bacteria[i].pili[j].fx = 0.0 ;
-                    bacteria[i].pili[j].fy = 0.0 ;
-                    bacteria[i].pili[j].F  = 0.0 ;
+                    bacteria[i].pili[j].pili_Fx = 0.0 ;
+                    bacteria[i].pili[j].pili_Fy = 0.0 ;
+                    bacteria[i].pili[j].piliForce  = 0.0 ;
                 }
             }
             else
             {
-                bacteria[i].pili[j].lFree += vProPili * dt ;
-                if ( bacteria[i].pili[j].lFree > piliMaxLength )     //pili length is limited
+                bacteria[i].pili[j].lFree += bacteria[i].pili[j].vProPili * dt ;
+                if ( bacteria[i].pili[j].lFree > bacteria[i].pili[j].piliMaxLength )     //pili length is limited
                 {
-                    bacteria[i].pili[j].lFree = piliMaxLength ;
+                    bacteria[i].pili[j].lFree = bacteria[i].pili[j].piliMaxLength ;
                 }
             }
             averageLengthFree += bacteria[i].pili[j].lFree / (nbacteria * nPili) ;
         }
     }
 }
-*/
-/*
+//-----------------------------------------------------------------------------------------------------
 void TissueBacteria:: TermalFluctiation_Forces()
 {
     double sig ;
@@ -786,12 +951,12 @@ void TissueBacteria:: TermalFluctiation_Forces()
         {
             vis = Update_LocalFriction(bacteria[i].nodes[j].x, bacteria[i].nodes[j].y) ;
             sig = sqrt(2.0*dt/vis) ;
-            bacteria[i].nodes[j].xdev =gasdev()*sig;
-            bacteria[i].nodes[j].ydev =gasdev()*sig;
+            bacteria[i].nodes[j].xdev =gasdev(&idum)*sig;
+            bacteria[i].nodes[j].ydev =gasdev(&idum)*sig;
         }
     }
 }
-*/
+
 //-----------------------------------------------------------------------------------------------------
 double TissueBacteria:: Update_LocalFriction (double x , double y)
 {
@@ -861,8 +1026,6 @@ void TissueBacteria::Update_ViscousDampingCoeff()
     }
 }
 
-
-
 //-----------------------------------------------------------------------------------------------------
 
 void TissueBacteria:: Cal_MotorForce()
@@ -877,7 +1040,7 @@ void TissueBacteria:: Cal_MotorForce()
     
     for (int i=0; i<nbacteria; i++)
     {
-        double tmpFmotor = fmotor * motorEfficiency ;
+        double tmpFmotor = motorForce_Amplitude * motorEfficiency ;
         if (bacteria[i].wrapMode)
         {
             tmpFmotor *= bacteria[i].wrapSlowDown ;
@@ -885,11 +1048,11 @@ void TissueBacteria:: Cal_MotorForce()
         /*
         if (bacteria[i].directionOfMotion == true)
         {
-            tmpFmotor = fmotor ;
+            tmpFmotor = motorForce_Amplitude ;
         }
         else
         {
-            tmpFmotor = 0.5 * fmotor ;
+            tmpFmotor = 0.5 * motorForce_Amplitude ;
         }
         if (bacteria[i].attachedToFungi == false)
         {
@@ -906,15 +1069,15 @@ void TissueBacteria:: Cal_MotorForce()
                 {
                     //fungi is modeled by slime
                     //Following Slime or hyphae
-                    fs = Bacterial_HighwayFollowing(i, 2.0 * length) ;        // length/2
+                    fs = Bacterial_HighwayFollowing(i, 2.0 * bacteriaLength) ;        // length/2
                 }
                 
                 bacteria[i].nodes[j].fMotorx =  (tmpFmotor - fs ) * (bacteria[i].nodes[j].x - bacteria[i].nodes[j+1].x)/ Cal_NodeToNodeDistance(i,j,i,j+1) ;                          // force to the direction of head
                 
                 bacteria[i].nodes[j].fMotory =  (tmpFmotor - fs ) * (bacteria[i].nodes[j].y - bacteria[i].nodes[j+1].y)/ Cal_NodeToNodeDistance(i,j,i,j+1) ;                          // force to the direction of head
                 
-                bacteria[i].nodes[j].fMotorx += bacteria[i].fSTFx ;     // Fh + Fs
-                bacteria[i].nodes[j].fMotory += bacteria[i].fSTFy ;
+                bacteria[i].nodes[j].fMotorx += bacteria[i].bhf_Fx ;     // Fh + Fs
+                bacteria[i].nodes[j].fMotory += bacteria[i].bhf_Fy ;
             }
             else
             {
@@ -947,7 +1110,7 @@ void TissueBacteria:: Cal_MotorForce()
 double TissueBacteria:: Bacterial_HighwayFollowing (int i, double R)        // i th bacteria, radius of the search area
 {
     
-    double tmpFmotor = fmotor * motorEfficiency ;
+    double tmpFmotor = motorForce_Amplitude * motorEfficiency ;
     if (bacteria[i].wrapMode)
     {
         tmpFmotor *= bacteria[i].wrapSlowDown ;
@@ -1086,8 +1249,8 @@ double TissueBacteria:: Bacterial_HighwayFollowing (int i, double R)        // i
     
     if (totalSlimeInSearchArea < smallValue)
     {
-        bacteria[i].fSTFx = 0.0 ;
-        bacteria[i].fSTFy = 0.0 ;
+        bacteria[i].bhf_Fx = 0.0 ;
+        bacteria[i].bhf_Fy = 0.0 ;
         // There is no slime in the search area
         
     }
@@ -1115,8 +1278,8 @@ double TissueBacteria:: Bacterial_HighwayFollowing (int i, double R)        // i
      // using alfa(radiant) for direction of the force
      // Fs = EpsilonS *(ft/(N-1))* (S/S0) ( toward slime)
      
-     bacteria[i].fSTFx = slimeEffectiveness * fmotor * cos(alfa) ;
-     bacteria[i].fSTFy = slimeEffectiveness * fmotor * sin(alfa) ;
+     bacteria[i].bhf_Fx = slimeEffectiveness * motorForce_Amplitude * cos(alfa) ;
+     bacteria[i].bhf_Fy = slimeEffectiveness * motorForce_Amplitude * sin(alfa) ;
      // (S/S0) is not included yet
      }
      */
@@ -1153,48 +1316,37 @@ double TissueBacteria:: Bacterial_HighwayFollowing (int i, double R)        // i
         
         //cout<< orientationBacteria<<'\t'<< alfa<< '\t'<<(region -2 ) * 36.0<<endl;
         
-        bacteria[i].fSTFx = slimeEffectiveness * tmpFmotor * cos(alfa) ;
-        bacteria[i].fSTFy = slimeEffectiveness * tmpFmotor * sin(alfa) ;
+        bacteria[i].bhf_Fx = slimeEffectiveness * tmpFmotor * cos(alfa) ;
+        bacteria[i].bhf_Fy = slimeEffectiveness * tmpFmotor * sin(alfa) ;
         // (S/S0) is not included yet
     }
-    return  sqrt(bacteria[i].fSTFx * bacteria[i].fSTFx + bacteria[i].fSTFy * bacteria[i].fSTFy) ;
+    return  sqrt(bacteria[i].bhf_Fx * bacteria[i].bhf_Fx + bacteria[i].bhf_Fy * bacteria[i].bhf_Fy) ;
 }
 //-----------------------------------------------------------------------------------------------------
 void TissueBacteria:: Reverse_IndividualBacteriaa (int i)
 {
    // bacteria[i].directionOfMotion = ! bacteria[i].directionOfMotion ;
     bacteria[i].turnStatus = true ;
-    bacteria[i].turnTime = 0.0 ;
+    bacteria[i].turnTimer = 0.0 ;
    
   //  bacteria[i].turnAngle =(2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;    //uniform distribution
     if (bacteria[i].attachedToFungi == false || inLiquid == true)
     {
-        //bacteria[i].turnAngle = gasdev(&idum) *  bacteria[i].maxTurnAngle ;                //guassian distribution
+        
         bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxTurnAngle ;
-        //test turnAngle
-        //bacteria[i].turnAngle = 0.0 ;
         /*
-        std::default_random_engine generator ;
-        std::normal_distribution<double> distribution( 0.0, bacteria[i].turnSDV  ) ;
-        bacteria[i].turnAngle = distribution(generator);
-         */
+        //Normal distribution need calibrration.
+        //Double check to avoid repetition
+        bacteria[i].turnAngle = turnAngle_distribution(turnAngle_seed) ;
+        */
         //cout<< "turning angle for "<<i<<"th bacteria is: "<<bacteria[i].turnAngle << endl ;
         
     }
     else
     {
         bacteria[i].turnAngle = 0.0 ;
-        //cout<< i<<" is attached to fungi "<<endl;
-        //test attachtoFungi=false
-        //bacteria[i].turnAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) *  bacteria[i].maxTurnAngle ;
-        /*
-        std::default_random_engine generator ;
-        std::normal_distribution<double> distribution( 0.0, bacteria[i].turnSDV ) ;
-        bacteria[i].turnAngle = distribution(generator);
-         */
     }
     
-    //bacteria[i].turnAngle =  bacteria[i].maxTurnAngle ;
     if (bacteria[i].sourceWithin == false)
     {
         //bacteria[i].sourceWithin = bacteria[i].SourceRegion() ;
@@ -1225,7 +1377,7 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
 {
     for (int i=0; i<nbacteria; i++)
     {
-        if (chemotacticMechanism == classic)
+        if (chemotacticMechanism == observational)
         {
             if (bacteria[i].sourceWithin == false)
             {
@@ -1237,21 +1389,19 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
                 bacteria[i].timeInSource += dt ;
             }
             
-            if (bacteria[i].reversalTime >= bacteria[i].reversalPeriod && bacteria[i].wrapMode == false )
+            if (bacteria[i].internalReversalTimer >= bacteria[i].reversalPeriod && bacteria[i].wrapMode == false )
             {
-                bacteria[i].reversalTime  = 0.0 ;
+                bacteria[i].internalReversalTimer  = 0.0 ;
                 if ( rand() / (RAND_MAX + 1.0) < bacteria[i].wrapProbability )
                 {
                     bacteria[i].turnStatus = false ;
-                    bacteria[i].turnTime = 0.0 ;
+                    bacteria[i].turnTimer = 0.0 ;
                     
                     bacteria[i].wrapMode = true ;
-                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(wrap_distribution,wrap_seed, lognormal_wrap_a, run_calibrated, 1.0/bacteria[i].wrapRate ) ;
+                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(wrapDuration_distribution,wrapDuration_seed, lognormal_wrap_a, run_calibrated, 1.0/bacteria[i].wrapRate ) ;
                   //  bacteria[i].wrapAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxWrapAngle ;
                     
-                    std::default_random_engine generator ;
-                    std::normal_distribution<double> distribution(bacteria[i].wrapMeanAngle , bacteria[i].wrapSDV ) ;
-                    bacteria[i].wrapAngle = distribution(generator);
+                    bacteria[i].wrapAngle = wrapAngle_distribution(wrapAngle_seed);
                     if ( rand() / (RAND_MAX + 1.0) < 0.5)
                     {
                         bacteria[i].wrapAngle *= -1.0 ;
@@ -1261,25 +1411,25 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
                 {
                     /*  // check to see whether these are neccessary or not
                     bacteria[i].wrapMode = false ;
-                    bacteria[i].wrapTime = 0.0 ;
+                    bacteria[i].wrapTimer = 0.0 ;
                     bacteria[i].wrapAngle = 0.0 ;
                      */
-                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(run_distribution, run_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
+                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(runDuration_distribution, runDuration_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
                     Reverse_IndividualBacteriaa(i) ;
                 }
             }
-            if (bacteria[i].wrapTime > bacteria[i].wrapDuration)
+            if (bacteria[i].wrapTimer > bacteria[i].wrapPeriod)
             {
                 bacteria[i].wrapMode = false ;
-                bacteria[i].wrapTime = 0.0 ;
+                bacteria[i].wrapTimer = 0.0 ;
                 bacteria[i].wrapAngle = 0.0 ;
                 
-                bacteria[i].reversalTime  = 0.0 ;
-                bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(run_distribution, run_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
+                bacteria[i].internalReversalTimer  = 0.0 ;
+                bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(runDuration_distribution, runDuration_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
                 Reverse_IndividualBacteriaa(i) ;
                 
             }
-            bacteria[i].reversalTime += dt ;
+            bacteria[i].internalReversalTimer += dt ;
         }
         else        // chemotacticMechanism==true
         {
@@ -1295,19 +1445,17 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
             
             if (bacteria[i].wrapMode == false && bacteria[i].motilityMetabolism.switchMode == true )
             {
-                bacteria[i].reversalTime  = 0.0 ;
+                bacteria[i].internalReversalTimer  = 0.0 ;
                 if ( rand() / (RAND_MAX + 1.0) < bacteria[i].wrapProbability )
                 {
                     bacteria[i].turnStatus = false ;
-                    bacteria[i].turnTime = 0.0 ;
+                    bacteria[i].turnTimer = 0.0 ;
                     
                     bacteria[i].wrapMode = true ;
-                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(wrap_distribution,wrap_seed, lognormal_wrap_a, run_calibrated, 1.0/bacteria[i].wrapRate) ;
+                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(wrapDuration_distribution,wrapDuration_seed, lognormal_wrap_a, run_calibrated, 1.0/bacteria[i].wrapRate) ;
                   //  bacteria[i].wrapAngle = (2.0*(rand() / (RAND_MAX + 1.0))-1.0 ) * bacteria[i].maxWrapAngle ;
                     
-                    std::default_random_engine generator ;
-                    std::normal_distribution<double> distribution(bacteria[i].wrapMeanAngle , bacteria[i].wrapSDV ) ;
-                    bacteria[i].wrapAngle = distribution(generator);
+                    bacteria[i].wrapAngle = wrapAngle_distribution(wrapAngle_seed);
                     if ( rand() / (RAND_MAX + 1.0) < 0.5)
                     {
                         bacteria[i].wrapAngle *= -1.0 ;
@@ -1317,10 +1465,10 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
                 {
                     /*  // check to see whether these are neccessary or not
                     bacteria[i].wrapMode = false ;
-                    bacteria[i].wrapTime = 0.0 ;
+                    bacteria[i].wrapTimer = 0.0 ;
                     bacteria[i].wrapAngle = 0.0 ;
                      */
-                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(run_distribution, run_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
+                    bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(runDuration_distribution, runDuration_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
                     Reverse_IndividualBacteriaa(i) ;
                     bacteria[i].motilityMetabolism.switchMode = false ;
                 }
@@ -1328,21 +1476,20 @@ void TissueBacteria:: Check_Perform_AllReversing_andWrapping()
             else if ( bacteria[i].wrapMode == true && bacteria[i].motilityMetabolism.switchMode == true)
             {
                 bacteria[i].wrapMode = false ;
-                bacteria[i].wrapTime = 0.0 ;
+                bacteria[i].wrapTimer = 0.0 ;
                 bacteria[i].wrapAngle = 0.0 ;
                 
-                bacteria[i].reversalTime  = 0.0 ;
-                bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(run_distribution, run_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
+                bacteria[i].internalReversalTimer  = 0.0 ;
+                bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(runDuration_distribution, runDuration_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate) ;
                 Reverse_IndividualBacteriaa(i) ;
                 bacteria[i].motilityMetabolism.switchMode = false ;
                 
             }
-            bacteria[i].reversalTime += dt ;
+            bacteria[i].internalReversalTimer += dt ;
             
         }
     }
 }
-
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -1364,7 +1511,6 @@ void TissueBacteria:: Update_Bacteria_AllNodes ()
 
 //-----------------------------------------------------------------------------------------------------
 
-
 void TissueBacteria:: Initialize_BacteriaProteinLevel ()
 {
     double allProtein = 0.0 ;
@@ -1381,6 +1527,29 @@ void TissueBacteria:: Initialize_BacteriaProteinLevel ()
     }
     
 }
+
+void TissueBacteria::InitializeMatrix ()
+{
+   for (int m=0; m < nx; m++)
+   {
+       for (int n=0; n < ny; n++)
+       {
+          slime[m][n] = liqBackground  ;
+          surfaceCoverage[m][n] = 0 ;
+          visit[m][n] = 0 ;
+       }
+   }
+   
+   for (int i=0; i < nx; i++)
+   {
+      X[i]= i * dx ;
+   }
+   for (int j=0; j < ny; j++)
+   {
+      Y[j]= j * dy ;
+   }
+}
+
 //-----------------------------------------------------------------------------------------------------
 void TissueBacteria:: Bacterial_ProteinExchange ()
 {
@@ -1391,8 +1560,8 @@ void TissueBacteria:: Bacterial_ProteinExchange ()
             if (bacteria[i].connectionToOtherB[j] != 0.0)
             {
                 double nbar = (bacteria[i].protein + bacteria[j].protein)/2 ;
-                bacteria[i].protein += (nbar-bacteria[i].protein)* Rp * dt * ( bacteria[i].connectionToOtherB[j]/(2*nnode-1) ) ;
-                bacteria[j].protein += (nbar-bacteria[j].protein)* Rp * dt * ( bacteria[j].connectionToOtherB[i]/(2*nnode-1) ) ;
+                bacteria[i].protein += (nbar-bacteria[i].protein)* proteinExchangeRate * dt * ( bacteria[i].connectionToOtherB[j]/(2*nnode-1) ) ;
+                bacteria[j].protein += (nbar-bacteria[j].protein)* proteinExchangeRate * dt * ( bacteria[j].connectionToOtherB[i]/(2*nnode-1) ) ;
             }
         }
     }
@@ -1462,60 +1631,134 @@ void TissueBacteria:: BacterialVisualization_ParaView ()
 }
 
 //-----------------------------------------------------------------------------------------------------
-/*
-void TissueBacteria:: ParaView2 ()
+
+void TissueBacteria:: ParaView_Liquid ()
 {
-    int index = index1 ;
-    string vtkFileName2 = "Grid"+ to_string(index)+ ".vtk" ;
-    ofstream SignalOut;
-    SignalOut.open(vtkFileName2.c_str());
-    SignalOut << "# vtk DataFile Version 2.0" << endl;
-    SignalOut << "Result for paraview 2d code" << endl;
-    SignalOut << "ASCII" << endl;
-    SignalOut << "DATASET RECTILINEAR_GRID" << endl;
-    SignalOut << "DIMENSIONS" << " " << nx  << " " << " " << ny << " " << nz  << endl;
+     int index = index1 ;
+     if (index > 2)
+     {
+       return ;
+     }
+     string vtkFileName2 = folderName + "Grid"+ to_string(index)+ ".vtk" ;
+     ofstream SignalOut;
+     SignalOut.open(vtkFileName2.c_str());
+     SignalOut << "# vtk DataFile Version 2.0" << endl;
+     SignalOut << "Result for paraview 2d code" << endl;
+     SignalOut << "ASCII" << endl;
+     SignalOut << "DATASET RECTILINEAR_GRID" << endl;
+     SignalOut << "DIMENSIONS" << " " << nx  << " " << " " << ny << " " << nz  << endl;
+     
+     SignalOut << "X_COORDINATES " << nx << " float" << endl;
+     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+     for (int i = 0; i < nx ; i++) {
+         SignalOut << X[i] << endl;
+     }
+     
+     SignalOut << "Y_COORDINATES " << ny << " float" << endl;
+     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+     for (int j = 0; j < ny; j++) {
+         SignalOut << Y[j] << endl;
+     }
+     
+     SignalOut << "Z_COORDINATES " << nz << " float" << endl;
+     //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
+     for (int k = 0; k < nz ; k++) {
+         SignalOut << 0 << endl;
+     }
+     
+     SignalOut << "POINT_DATA " << nx * ny * nz << endl;
+     SignalOut << "SCALARS liquid float 1" << endl;
+     SignalOut << "LOOKUP_TABLE default" << endl;
+     
+     for (int k = 0; k < nz ; k++) {
+         for (int j = 0; j < ny; j++) {
+             for (int i = 0; i < nx; i++) {
+                 SignalOut << slime[i][j] << endl;
+             }
+         }
+     }
+     
+}
+
+void TissueBacteria::VisitsPerGrid ()
+{
+    //SlimeTrace is needed for this function, it calculate #visit in each grid
+    int m = 0 ;
+    int n = 0 ;
+    //  int newVisit[nx][ny] = {0} ;
     
-    SignalOut << "X_COORDINATES " << nx << " float" << endl;
-    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
-    for (int i = 0; i < nx ; i++) {
-        SignalOut << X[i] << endl;
-    }
     
-    SignalOut << "Y_COORDINATES " << ny << " float" << endl;
-    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
-    for (int j = 0; j < ny; j++) {
-        SignalOut << Y[j] << endl;
-    }
-    
-    SignalOut << "Z_COORDINATES " << nz << " float" << endl;
-    //write(tp + 10000, 106) 'X_COORDINATES ', Nx - 1, ' float'
-    for (int k = 0; k < nz ; k++) {
-        SignalOut << 0 << endl;
-    }
-    
-    SignalOut << "POINT_DATA " << (nx )*(ny )*(nz ) << endl;
-    SignalOut << "SCALARS DPP float 1" << endl;
-    SignalOut << "LOOKUP_TABLE default" << endl;
-    
-    for (int k = 0; k < nz ; k++) {
-        for (int j = 0; j < ny; j++) {
-            for (int i = 0; i < nx; i++) {
-                SignalOut << slime[i][j] << endl;
-            }
+    for (int i=0; i<nbacteria; i++)
+    {
+        for (int j=0; j<2*nnode-1 ; j++)
+        {
+            // we add domain to x and y in order to make sure m and n would not be negative integers
+            m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
+            n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
+           visit[m][n] += 1 ;
+            //  newVisit[m][n] = 1 ;
+            
         }
     }
     
-    index1++ ;
 }
+//-----------------------------------------------------------------------------------------------------
 
-*/
+int TissueBacteria::PowerLawExponent ()
+{
+    double discrete = 1.5 ;
+    double log10discrete = log10(discrete) ;
+    fNoVisit = 0 ;
+    int minValue = visit[0][0] ;
+    int maxValue = visit[0][0] ;
+    int alfaMin = 0 ;
+    int alfaMax = 0 ;
+    
+    // alfa and a must be integer, if you want to change them to a double variable you need to make some changes in the code
+    int alfa = 0 ;
+    for (int n = 0; n< ny; n++)
+    {
+        for (int m = 0 ; m < nx; m++)
+        {
+            if(visit[m][n] > maxValue ) maxValue = visit[m][n];
+            if(visit[m][n] < minValue ) minValue = visit[m][n];
+        }
+    }
+    alfaMin = max(floor (log10(minValue)/log10discrete) , 0.0 ) ;
+    alfaMax = max(floor (log10(maxValue)/log10discrete) , 0.0 );
+    numOfClasses = (alfaMax - alfaMin +1 )  ;
+    frequency.assign(numOfClasses, 0) ;
+    
+    for (int n = 0; n < ny; n++)
+    {
+        for (int m = 0 ; m < nx; m++)
+        {   if(visit[m][n] == 0)
+        {
+            fNoVisit += 1 ;
+            continue ;
+        }
+            alfa = floor(log10(visit[m][n])/log10discrete) ;
+            frequency.at(alfa ) += 1 ;
+        }
+    }
+    double normalization = 1 ;
+    for (int i = 0 ; i<numOfClasses ; i++)
+    {
+        normalization = floor(pow(discrete, i+1)) - ceil(pow(discrete, i)) + 1 ;    // it counts integers between this two numbers
+        
+        if(normalization == 0 )    normalization = 1 ;  // for that i, frequesncy is zero. normalized or unnormalized .
+        frequency.at(i) = frequency.at(i) / normalization ;
+    }
+    
+    return alfaMin ;
+}
 
 //-----------------------------------------------------------------------------------------------------
 void TissueBacteria:: Bacteria_CreateDuplicate()
 {
     for (int i=0; i<nbacteria; i++)
-    {   bacteria[i].copy = false ;              // No duplicate is needed
-        if (bacteria[i].nodes[(nnode-1)/2].x > length && bacteria[i].nodes[(nnode-1)/2].x <(domainx-length) && bacteria[i].nodes[(nnode-1)/2].y > length && bacteria[i].nodes[(nnode-1)/2].y < (domainy-length) )
+    {   bacteria[i].duplicateIsNeeded = false ;              // No duplicate is needed
+        if (bacteria[i].nodes[(nnode-1)/2].x > bacteriaLength && bacteria[i].nodes[(nnode-1)/2].x <(domainx-bacteriaLength) && bacteria[i].nodes[(nnode-1)/2].y > bacteriaLength && bacteria[i].nodes[(nnode-1)/2].y < (domainy-bacteriaLength) )
         {
             for (int j=0; j<nnode; j++)
             {
@@ -1530,12 +1773,12 @@ void TissueBacteria:: Bacteria_CreateDuplicate()
                 if (bacteria[i].nodes[j].x < 0.0)
                 {
                     bacteria[i].duplicate[j].x = bacteria[i].nodes[j].x + domainx ;
-                    bacteria[i].copy = true ;
+                    bacteria[i].duplicateIsNeeded = true ;
                 }
                 else if (bacteria[i].nodes[j].x > domainx)
                 {
                     bacteria[i].duplicate[j].x = bacteria[i].nodes[j].x - domainx ;
-                    bacteria[i].copy = true ;
+                    bacteria[i].duplicateIsNeeded = true ;
                 }
                 else
                 {
@@ -1545,12 +1788,12 @@ void TissueBacteria:: Bacteria_CreateDuplicate()
                 if (bacteria[i].nodes[j].y < 0.0)
                 {
                     bacteria[i].duplicate[j].y = bacteria[i].nodes[j].y + domainy ;
-                    bacteria[i].copy = true ;
+                    bacteria[i].duplicateIsNeeded = true ;
                 }
                 else if (bacteria[i].nodes[j].y > domainy)
                 {
                     bacteria[i].duplicate[j].y = bacteria[i].nodes[j].y - domainy ;
-                    bacteria[i].copy = true ;
+                    bacteria[i].duplicateIsNeeded = true ;
                 }
                 else
                 {
@@ -1570,7 +1813,7 @@ void TissueBacteria:: Bacteria_MergeWithDuplicate ()
     bool ay = true ;
     for (int i=0 ; i<nbacteria; i++)
     {
-        if (bacteria[i].copy== true)
+        if (bacteria[i].duplicateIsNeeded== true)
         {
             int j=0 ;
             ax = true ;
@@ -1623,7 +1866,7 @@ void TissueBacteria:: Update_SlimeConcentration ()
         for (n=0; n<ny; n++)
         {
             cout<< " WARNING: Decay is not possible when slime < liqBackground " ;
-            slime[m][n] -= kd * dt * (slime[m][n]-liqBackground)  ;
+            slime[m][n] -= slimeDecayRate * dt * (slime[m][n]-liqBackground)  ;
         }
     }
     //calculate the secretion of slime based on where bacteria are located
@@ -1634,7 +1877,7 @@ void TissueBacteria:: Update_SlimeConcentration ()
             // we add domain to x and y in order to make sure m and n would not be negative integers
             m = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].x + domainx , domainx) / dx ) ) ) % nx  ;
             n = (static_cast<int> (round ( fmod (bacteria[i].allnodes[j].y + domainy , domainy) / dy ) ) ) % ny  ;
-            slime[m][n] += sr * dt ;
+            slime[m][n] += slimeSecretionRate * dt ;
             //   visit[m][n] += 1.0 ;      //undating visits in each time step. if you make it as uncomment, you should make it comment in the VisitsPerGrid function
             
         }
@@ -1653,12 +1896,12 @@ void TissueBacteria:: Handle_BacteriaTurnOrientation ()
             double orientation = Cal_BacteriaOrientation(i) ;
             bacteria[i].nodes[0].fMotorx = fTotal * cos(bacteria[i].turnAngle + orientation ) ;
             bacteria[i].nodes[0].fMotory = fTotal * sin(bacteria[i].turnAngle + orientation ) ;
-            bacteria[i].turnTime += dt ;
+            bacteria[i].turnTimer += dt ;
             
-            if (bacteria[i].turnTime > turnPeriod)
+            if (bacteria[i].turnTimer > turnPeriod)
             {
                 bacteria[i].turnStatus = false ;
-                bacteria[i].turnTime = 0.0 ;
+                bacteria[i].turnTimer = 0.0 ;
                 bacteria[i].turnAngle = 0.0 ;
             }
             
@@ -1671,12 +1914,12 @@ void TissueBacteria:: Handle_BacteriaTurnOrientation ()
             double orientation = Cal_BacteriaOrientation(i) ;
             bacteria[i].nodes[0].fMotorx = fTotal * cos(bacteria[i].wrapAngle + orientation ) ;
             bacteria[i].nodes[0].fMotory = fTotal * sin(bacteria[i].wrapAngle + orientation ) ;
-            bacteria[i].wrapTime += dt ;
+            bacteria[i].wrapTimer += dt ;
             
         }
         if (bacteria[i].turnStatus && bacteria[i].wrapMode )
         {
-            cout<< i <<'\t'<<bacteria[i].turnTime<<'\t'<< bacteria[i].wrapTime<<endl ;
+            cout<< i <<'\t'<<bacteria[i].turnTimer<<'\t'<< bacteria[i].wrapTimer<<endl ;
         }
     }
 }
@@ -1701,15 +1944,15 @@ void TissueBacteria:: UpdateReversalFrequency ()
    
     for (int i=0; i< nbacteria ; i++)
     {
-        bacteria[i].chemotaxisTime += 1.0/ updatingFrequency ;
+        bacteria[i].chemotaxisTimer += 1.0/ updatingFrequency ;
         //Controlls how often the bacteria do chemotaxis( lazy bacteria)
-        if (bacteria[i].chemotaxisTime < bacteria[i].chemotaxisPeriod )
+        if (bacteria[i].chemotaxisTimer < bacteria[i].chemotaxisPeriod )
         {
             continue ;
         }
         else
         {
-            bacteria[i].chemotaxisTime = 0.0 ;
+            bacteria[i].chemotaxisTimer = 0.0 ;
             double ds = Cal_ChemoGradient2(i) ;
             double tmpChemoStrength = chemoStrength_run ;
             if (bacteria[i].wrapMode)
@@ -1733,7 +1976,7 @@ void TissueBacteria:: UpdateReversalFrequency ()
                  }
                  */
                 //optimistic
-                //double tmpPeriod = 1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+                //double tmpPeriod = 1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *motorForce_Amplitude  /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
                 //bacteria[i].reversalPeriod = max(tmpPeriod, minimumRunTime ) ;
                 //pessimistic
                 //bacteria[i].reversalPeriod = 1.0/ reversalRate ;      //constant run durations
@@ -1743,7 +1986,7 @@ void TissueBacteria:: UpdateReversalFrequency ()
                 }
                 else
                 {
-                    bacteria[i].wrapDuration = max(bacteria[i].maxRunDuration, minimumRunTime) ;
+                    bacteria[i].wrapPeriod = max(bacteria[i].maxRunDuration, minimumRunTime) ;
                 }
                 
             }
@@ -1753,8 +1996,8 @@ void TissueBacteria:: UpdateReversalFrequency ()
                 //bacteria[i].reversalPeriod = 1.0/ reversalRate ;
                 
                 //pessimistic
-                //double tmpPeriod =1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
-                double tmpPeriod =  bacteria[i].maxRunDuration /( exp(tmpChemoStrength * (-1.0 *fmotor * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
+                //double tmpPeriod =1.0 /( reversalRate * exp(tmpChemoStrength * (-1.0 *motorForce_Amplitude * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;         // constant run duration
+                double tmpPeriod =  bacteria[i].maxRunDuration /( exp(tmpChemoStrength * (-1.0 *motorForce_Amplitude * ds   /* *cos(bacteria[i].orientation - preferedAngle )  */ )) ) ;
                 //test
                 if (bacteria[i].wrapMode == false)
                 {
@@ -1762,7 +2005,7 @@ void TissueBacteria:: UpdateReversalFrequency ()
                 }
                 else
                 {
-                    bacteria[i].wrapDuration = max(tmpPeriod, minimumRunTime ) ;
+                    bacteria[i].wrapPeriod = max(tmpPeriod, minimumRunTime ) ;
                 }
                 
             }
@@ -1775,9 +2018,9 @@ void TissueBacteria:: UpdateReversalFrequency ()
 double TissueBacteria:: Cal_ChemoGradient (int i)
 {
     double c0 = 1.0 ;   //amplitude of chemical
-   // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
+   // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLocation.at(0) ;
     double r2 = sqrt( pow( (bacteria[i].nodes[(nnode-1)/2].x - domainx/2.0 ) ,2 ) + pow( (bacteria[i].nodes[(nnode-1)/2].y - domainy/2.0 ) ,2 ) );
-    double r1 = sqrt( pow( (bacteria[i].oldLoc.at(0) - domainx/2.0 ) ,2 ) + pow( (bacteria[i].oldLoc.at(1) - domainy/2.0 ) ,2 ) ) ;
+    double r1 = sqrt( pow( (bacteria[i].oldLocation.at(0) - domainx/2.0 ) ,2 ) + pow( (bacteria[i].oldLocation.at(1) - domainy/2.0 ) ,2 ) ) ;
     double ds = -1.0* c0 * (r2 - r1) ;
     //cout<< ds<<endl ;
     return ds;
@@ -1787,16 +2030,16 @@ double TissueBacteria:: Cal_ChemoGradient (int i)
 double TissueBacteria:: Cal_ChemoGradient2 (int i)
 {
     double c0 = 1.0 ;   //amplitude of chemical
-    // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLoc.at(0) ;
+    // double ds = bacteria[i].nodes[(nnode-1)/2].x - bacteria[i].oldLocation.at(0) ;
     int tmpXIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].x + 10.0 * domainx, domainx ) / tGrids.grid_dx ), tGrids.numberGridsX) ) ;
     int tmpYIndex = static_cast<int>( fmod( round(fmod( bacteria[i].nodes[(nnode-1)/2].y + 10.0 * domainy, domainy ) / tGrids.grid_dx ), tGrids.numberGridsX )) ;
     if (tmpXIndex < 0 || tmpXIndex > tGrids.numberGridsX - 1 || tmpYIndex < 0 || tmpYIndex > tGrids.numberGridsY - 1)
     {
         cout <<"Cal_ChemoGradient, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl ;
     }
-    double ds = gridInMain.at(tmpYIndex).at(tmpXIndex) - bacteria[i].oldChem ;
+    double ds = chemoProfile.at(tmpYIndex).at(tmpXIndex) - bacteria[i].oldChem ;
    // cout<<ds<<endl ;
-    bacteria[i].oldChem = gridInMain.at(tmpYIndex).at(tmpXIndex) ;
+    bacteria[i].oldChem = chemoProfile.at(tmpYIndex).at(tmpXIndex) ;
     return ds;
 }
 //-----------------------------------------------------------------------------------------------------
@@ -1886,16 +2129,16 @@ void TissueBacteria:: Find_FungalNetworkTrace (Fungi tmpFng)
                     /*
                     double decay = 2.0;
                     double tmpDis = 0.0 ;
-                    for (int j=0; j<tmpFng.tips.at(0).size(); j++)
+                    for (int j=0; j<tmpFng.tips_Coord.at(0).size(); j++)
                     {
-                        int id = tmpFng.tipsID.at(j) ;
+                        int id = tmpFng.tips_SegmentID.at(j) ;
                         vec1x= tmpFng.hyphaeSegments.at(id).x2 - m*dx ;
                         vec1y= tmpFng.hyphaeSegments.at(id).y2 - n*dy ;
                         vec2x= tmpFng.hyphaeSegments.at(id).x2 - tmpFng.hyphaeSegments.at(id).x1 ;
                         vec2y= tmpFng.hyphaeSegments.at(id).y2 - tmpFng.hyphaeSegments.at(id).y1 ;
                         double tmplength = MagnitudeVec(vec2x, vec2y) ;
                         double tmpAngle = AngleOfTwoVectors(vec1x, vec1y, vec2x, vec2y) ;
-                        tmpDis = Dist2D(tmpFng.tips.at(0).at(j), tmpFng.tips.at(1).at(j), m * dx, n * dy) ;
+                        tmpDis = Dist2D(tmpFng.tips_Coord.at(0).at(j), tmpFng.tips_Coord.at(1).at(j), m * dx, n * dy) ;
                         if (tmpAngle < pi/ 20.0 &&  tmpDis < tmplength   )
                         {
                             
@@ -2199,7 +2442,7 @@ void TissueBacteria::Update_MM_Legand()
         {
             cout <<"Cal_ChemoGradient, index out of range "<<tmpXIndex<<'\t'<<tmpYIndex<<endl<<flush ;
         }
-        double s = gridInMain.at(tmpYIndex).at(tmpXIndex) ;
+        double s = chemoProfile.at(tmpYIndex).at(tmpXIndex) ;
         bacteria[i].motilityMetabolism.legand = 1.0 * s ;
     }
     
@@ -2221,7 +2464,7 @@ void TissueBacteria::Update_BacteriaMaxDuration()
     {
         for (int i=0; i<nbacteria; i++)
         {
-            bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(run_distribution, run_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate ) ;
+            bacteria[i].maxRunDuration = bacteria[i].LogNormalMaxRunDuration(runDuration_distribution, runDuration_seed, lognormal_run_a, run_calibrated, 1.0/reversalRate ) ;
             
         }
     }
@@ -2252,13 +2495,17 @@ void TissueBacteria::WriteBacteria_AllStats()
 }
 //-----------------------------------------------------------------------------------------------------
 
-void TissueBacteria::LogLinear_RNG()
+void TissueBacteria::Initialize_Distributions_RNG()
 {
     std::lognormal_distribution<double> distribution(lognormal_run_m , lognormal_run_s ) ;
     std::lognormal_distribution<double> distribution2(lognormal_wrap_m , lognormal_wrap_s ) ;
+    std::normal_distribution<double> distribution3(normal_turnAngle_mean,normal_turnAngle_SDV) ;
+    std::normal_distribution<double> distribution4(normal_wrapAngle_mean,normal_wrapAngle_SDV) ;
     
-    run_distribution = distribution ;
-    wrap_distribution = distribution2 ;
+    runDuration_distribution = distribution ;
+    wrapDuration_distribution = distribution2 ;
+    turnAngle_distribution = distribution3 ;
+    wrapAngle_distribution = distribution4 ;
 }
 //-----------------------------------------------------------------------------------------------------
 
@@ -2269,15 +2516,15 @@ vector<vector<double> > TissueBacteria::Find_secretion_Coord_Rate(Fungi tmpFng)
     if (sourceAlongHyphae)
     {
         pointSources = sourceChemo ;
-        equiv_prodRate = tmpFng.production * tmpFng.tips.at(0).size() / sourceChemo.at(0).size() ;
+        equiv_prodRate = tmpFng.production * tmpFng.tips_Coord.at(0).size() / sourceChemo.at(0).size() ;
         transform(sourceProduction.begin(), sourceProduction.end(), sourceProduction.begin(), productNum(equiv_prodRate) ) ;
         
     }
     else
     {
         // production at the tips
-        pointSources = tmpFng.tips ;
-        sourceChemo = tmpFng.tips ;
+        pointSources = tmpFng.tips_Coord ;
+        sourceChemo = tmpFng.tips_Coord ;
         equiv_prodRate = tmpFng.production ;
         sourceProduction.resize(pointSources.at(0).size()) ;
         fill(sourceProduction.begin(), sourceProduction.end(), equiv_prodRate) ;
